@@ -293,3 +293,22 @@ select {
 .shelf-legend[hidden] { display: none; }
 .shelf-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 0.5rem; }
 .shelf-legend span::before { content: ''; display: inline-block; width: 0.8rem; height: 0.45rem; margin-right: 0.3rem; background: var(--c); vertical-align: middle; }
+
+/* Books / list toggle */
+.view-toggle { display: flex; justify-content: flex-end; align-items: center; gap: 0; margin: 0 0 0.6rem; font-size: 0.85rem; color: var(--ink-soft); }
+.view-toggle span { margin-right: 0.5rem; }
+.view-toggle button {
+  font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule);
+  padding: 0.25rem 0.8rem; cursor: pointer;
+}
+.view-toggle button + button { border-left: none; }
+.view-toggle button[aria-pressed="true"] { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+
+/* Books pop out of the shelf on hover. */
+.book-spine { transition: transform 150ms ease-out, box-shadow 150ms ease-out; }
+.book-spine:hover, .book-spine:focus-visible {
+  transform: translateY(-0.7rem) rotate(-1.5deg);
+  box-shadow: 0.35rem 0.5rem 0.6rem rgba(30, 20, 10, 0.35),
+    inset 0 0.35rem 0 -0.2rem rgba(244, 234, 214, 0.35), inset 0 -0.55rem 0 -0.4rem rgba(244, 234, 214, 0.35);
+  z-index: 1;
+}

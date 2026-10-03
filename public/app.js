@@ -125,8 +125,33 @@ function render(items, total, page) {
     results.append(el('p', { className: 'empty', textContent: 'Nothing found in the archive.' }));
     return;
   }
-  results.append(bookshelf(items));
+  if (view === 'books') {
+    results.append(bookshelf(items));
+    return;
+  }
+  for (const it of items) {
+    const entry = tab === 'cases' ? caseCard(it) : recordCard(it);
+    adminControls(entry, it);
+    results.append(entry);
+  }
 }
+
+// --- Books / list view toggle (remembered per browser) -----------------------
+let view = 'books';
+try { if (localStorage.getItem('view') === 'list') view = 'list'; } catch { /* storage unavailable */ }
+
+function updateViewToggle() {
+  document.querySelectorAll('#viewToggle button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+  $('#shelfLegend').hidden = !(tab === 'cases' && view === 'books');
+}
+
+document.querySelectorAll('#viewToggle button').forEach((b) => b.addEventListener('click', () => {
+  if (view === b.dataset.view) return;
+  view = b.dataset.view;
+  try { localStorage.setItem('view', view); } catch { /* storage unavailable */ }
+  updateViewToggle();
+  load(currentPage);
+}));
 
 // --- Bookshelf view for the Library Database --------------------------------
 // Each record is a book spine; its colour, width and height come from its id so a
@@ -360,7 +385,7 @@ function showTab(name) {
   document.querySelectorAll('nav button').forEach((x) => x.classList.toggle('active', x.dataset.tab === name));
   $('#recordSearch').hidden = name !== 'records';
   caseSearch.hidden = name !== 'cases';
-  $('#shelfLegend').hidden = name !== 'cases';
+  updateViewToggle();
   $('#activeCases').hidden = name !== 'cases' || !$('#activeList').childElementCount;
   search.value = ''; tagInput.value = ''; caseSearch.reset();
   try { history.replaceState(null, '', name === 'cases' ? '#cases' : location.pathname); } catch { /* ignore */ }
@@ -380,7 +405,7 @@ caseSearch.addEventListener('reset', () => setTimeout(() => load()));
     const select = caseSearch.elements[name];
     for (const o of options.cases[name] || []) select.append(el('option', { value: o, textContent: o }));
   }
-  if (location.hash === '#cases') showTab('cases'); else buildForm();
+  if (location.hash === '#cases') showTab('cases'); else { buildForm(); updateViewToggle(); }
   loadAccount();
   loadActive();
 })();

@@ -29,3 +29,21 @@ MIT – see [LICENSE](LICENSE).
 3. Deploy. The archive is seeded from `data/seed.json` on first request and entries persist in Redis.
 
 Without those variables (local development) the app falls back to `data/db.json`.
+
+## Admin moderation (Discord login)
+
+Admins can hide (soft delete) and restore entries. Hidden entries disappear from the public site but stay in the database.
+
+1. Create an app at https://discord.com/developers/applications and add the redirect
+   `https://<your-domain>/auth/callback` (and `http://localhost:3000/auth/callback` for local use) under **OAuth2**.
+2. Set these environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `DISCORD_CLIENT_ID` | Discord app client ID |
+| `DISCORD_CLIENT_SECRET` | Discord app client secret |
+| `ADMIN_DISCORD_IDS` | Comma-separated Discord user IDs allowed to moderate |
+| `SESSION_SECRET` | Long random string used to sign login cookies (required in production) |
+| `DISCORD_REDIRECT_URI` | Optional; overrides the auto-detected callback URL |
+
+Hiding endpoints: `DELETE /api/:kind/:id` and `POST /api/:kind/:id/restore` (admin only).

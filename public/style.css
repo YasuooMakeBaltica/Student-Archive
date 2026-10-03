@@ -79,3 +79,16 @@ input, textarea {
   cursor: pointer;
 }
 footer { text-align: center; padding: 1.5rem; color: var(--ink-soft); font-size: 0.85rem; }
+
+#account { font-size: 0.9rem; margin-bottom: 0.8rem; color: var(--ink-soft); }
+#account a, #account button {
+  font: inherit; color: var(--accent); background: none; border: none;
+  text-decoration: underline; cursor: pointer; padding: 0;
+}
+#hiddenToggle { display: block; margin-bottom: 1rem; font-size: 0.9rem; color: var(--ink-soft); }
+.entry.is-hidden { opacity: 0.6; border-style: dashed; }
+.admin-btn {
+  font: inherit; font-size: 0.8rem; color: var(--paper); background: #8a3b2a;
+  border: none; padding: 0.15rem 0.7rem; margin-top: 0.5rem; cursor: pointer;
+}
+.admin-btn.restore { background: var(--accent); }

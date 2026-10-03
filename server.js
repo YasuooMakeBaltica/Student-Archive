@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
+const { router: authRouter, getAdmin, requireAdmin } = require('./auth');
+
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -70,12 +72,16 @@ const wrap = (fn) => (req, res) => fn(req, res).catch((err) => {
 const app = express();
 app.use(express.json({ limit: '50kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(authRouter);
 
 for (const kind of ['records', 'cases']) {
   app.get(`/api/${kind}`, wrap(async (req, res) => {
     const q = String(req.query.q || '').toLowerCase();
     const tag = String(req.query.tag || '').toLowerCase();
+    // Hidden (soft-deleted) entries are only visible to admins who ask for them.
+    const showHidden = req.query.hidden === '1' && !!getAdmin(req);
     const items = (await loadDb())[kind].filter((it) => {
+      if (it.hidden && !showHidden) return false;
       if (tag && !it.tags.includes(tag)) return false;
       if (!q) return true;
       return [it.title, it.author, it.category, it.type, it.summary, it.outcome, ...it.tags]
@@ -94,6 +100,24 @@ for (const kind of ['records', 'cases']) {
     await saveDb(db);
     res.status(201).json(item);
   }));
+
+  // Admin moderation: hide (soft delete) or restore an entry.
+  const setHidden = (hidden) => wrap(async (req, res) => {
+    const db = await loadDb();
+    const item = db[kind].find((i) => i.id === parseInt(req.params.id, 10));
+    if (!item) return res.status(404).json({ error: 'Not found.' });
+    if (hidden) {
+      item.hidden = true;
+      item.hiddenBy = getAdmin(req).name;
+      item.hiddenAt = new Date().toISOString();
+    } else {
+      delete item.hidden; delete item.hiddenBy; delete item.hiddenAt;
+    }
+    await saveDb(db);
+    res.json(item);
+  });
+  app.delete(`/api/${kind}/:id`, requireAdmin, setHidden(true));
+  app.post(`/api/${kind}/:id/restore`, requireAdmin, setHidden(false));
 }
 
 if (require.main === module) {

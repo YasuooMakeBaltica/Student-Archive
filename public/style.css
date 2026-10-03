@@ -444,3 +444,15 @@ select {
 :root[data-theme="dark"] .donate-box { --stain: rgba(0, 0, 0, 0.28); }
 :root[data-theme="dark"] .donate-box::before, :root[data-theme="dark"] .donate-box::after { background: rgba(120, 104, 70, 0.6); }
 :root[data-theme="dark"] .stamp { background: #4a3f2c; }
+
+/* Windy torn edge: the ragged bottom of the donation notice flutters as if caught in a breeze. */
+@keyframes paper-wind {
+  0% { clip-path: polygon(-6% -8%, 106% -8%, 106% 94%, 100% 95.52%, 96% 98.60%, 91% 95.96%, 85% 99.48%, 78% 95.14%, 70% 98.14%, 63% 94.05%, 55% 96.44%, 47% 93.47%, 40% 98.80%, 32% 95.81%, 24% 99.98%, 17% 96.57%, 9% 99.07%, 4% 95.51%, 0% 97.00%, -6% 97%); }
+  25% { clip-path: polygon(-6% -8%, 106% -8%, 106% 94%, 100% 93.51%, 96% 97.02%, 91% 95.15%, 85% 99.76%, 78% 96.59%, 70% 100.35%, 63% 96.17%, 55% 97.65%, 47% 93.27%, 40% 97.41%, 32% 93.62%, 24% 97.89%, 17% 95.29%, 9% 99.19%, 4% 96.52%, 0% 98.60%, -6% 97%); }
+  50% { clip-path: polygon(-6% -8%, 106% -8%, 106% 94%, 100% 92.48%, 96% 95.40%, 91% 93.04%, 85% 97.52%, 78% 94.86%, 70% 99.86%, 63% 96.95%, 55% 99.56%, 47% 95.53%, 40% 99.20%, 32% 94.19%, 24% 97.02%, 17% 93.43%, 9% 96.93%, 4% 94.49%, 0% 97.00%, -6% 97%); }
+  75% { clip-path: polygon(-6% -8%, 106% -8%, 106% 94%, 100% 94.49%, 96% 96.98%, 91% 93.85%, 85% 97.24%, 78% 93.41%, 70% 97.65%, 63% 94.83%, 55% 98.35%, 47% 95.73%, 40% 100.59%, 32% 96.38%, 24% 99.11%, 17% 94.71%, 9% 96.81%, 4% 93.48%, 0% 95.40%, -6% 97%); }
+  100% { clip-path: polygon(-6% -8%, 106% -8%, 106% 94%, 100% 95.52%, 96% 98.60%, 91% 95.96%, 85% 99.48%, 78% 95.14%, 70% 98.14%, 63% 94.05%, 55% 96.44%, 47% 93.47%, 40% 98.80%, 32% 95.81%, 24% 99.98%, 17% 96.57%, 9% 99.07%, 4% 95.51%, 0% 97.00%, -6% 97%); }
+}
+.donate-box { animation: paper-wind 2.6s ease-in-out infinite; }
+.donate-box .support-hint { animation: wind-sway 2.6s ease-in-out infinite; transform-origin: top left; }
+@keyframes wind-sway { 0%, 100% { transform: skewX(0deg); } 50% { transform: skewX(-2.5deg) translateX(2px); } }

@@ -282,6 +282,7 @@ select {
 
 .forum-link { color: var(--accent); font-size: 0.9rem; }
 .case-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; }
+
 /* Case spines carry a status band across the top. */
 .book-spine[data-status]::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 0.45rem; background: #b49f7c;

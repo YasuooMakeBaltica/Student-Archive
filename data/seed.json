@@ -1,0 +1,60 @@
+{
+  "records": [
+    {
+      "id": 1,
+      "title": "Founding Charter of Democracy Craft",
+      "author": "Constitutional Convention",
+      "type": "Primary Source",
+      "year": 2023,
+      "tags": ["government", "constitution"],
+      "summary": "The original charter establishing the branches of government and the rights of citizens."
+    },
+    {
+      "id": 2,
+      "title": "A Study of Voter Turnout in Early Elections",
+      "author": "Dept. of Civic Studies",
+      "type": "Research Paper",
+      "year": 2024,
+      "tags": ["elections", "statistics"],
+      "summary": "Analyses participation rates across the first several general elections."
+    },
+    {
+      "id": 3,
+      "title": "Introduction to Parliamentary Procedure",
+      "author": "Speaker's Office",
+      "type": "Textbook",
+      "year": 2024,
+      "tags": ["legislature", "education"],
+      "summary": "A student guide to motions, readings, and voting in the legislature."
+    }
+  ],
+  "cases": [
+    {
+      "id": 1,
+      "title": "The Great Tax Reform Dispute",
+      "category": "Economics",
+      "year": 2024,
+      "tags": ["tax", "legislature"],
+      "summary": "A disagreement over a proposed flat tax and how it was resolved in committee.",
+      "outcome": "Compromise bill passed with a tiered rate."
+    },
+    {
+      "id": 2,
+      "title": "Land Claim Boundary Ruling",
+      "category": "Law",
+      "year": 2024,
+      "tags": ["courts", "property"],
+      "summary": "Two citizens contested the borders of adjacent plots; the court set a precedent for survey records.",
+      "outcome": "Ruling for the earlier registered claim."
+    },
+    {
+      "id": 3,
+      "title": "Emergency Powers During a Server Outage",
+      "category": "Government",
+      "year": 2025,
+      "tags": ["executive", "constitution"],
+      "summary": "Examines limits of executive authority when the legislature could not convene.",
+      "outcome": "Powers were reviewed and limited by amendment."
+    }
+  ]
+}

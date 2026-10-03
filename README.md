@@ -47,3 +47,22 @@ Anyone can log in with Discord (a login button sits in the top-right corner and 
 | `DISCORD_REDIRECT_URI` | Optional; overrides the auto-detected callback URL |
 
 Hiding endpoints: `DELETE /api/:kind/:id` and `POST /api/:kind/:id/restore` (admin only).
+
+## Court forum sync
+
+The Case Study Finder imports every case from the Democracy Craft court forums (District, Federal
+and Supreme Court) by reading thread titles such as `Etco v. mvchrelle [2026] DCR 102` and their
+status label. Only the parties, citation, court, year, status and a link are stored — post contents
+are not copied. The three most recently active Pending / In Session cases are shown at the top of the finder.
+
+- A Vercel cron job (`vercel.json`) calls `/api/cron/sync` once a day.
+- The first run starts a full import of older pages; it continues on each run (admins can also press
+  **Sync court forums now** on the Case Study Finder tab to speed it up). Progress is saved after every page.
+- Once real cases are imported, the made-up example cases are removed.
+- Requires Upstash Redis (see above) and these variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `SYNC_ENABLED` | Must be `true` for the sync to run (only enable with Democracy Craft staff's permission) |
+| `CRON_SECRET` | Random string; Vercel sends it to authorise the daily cron call |
+| `FORUM_BASE_URL`, `FORUM_DISTRICT_PATH`, `FORUM_FEDERAL_PATH`, `FORUM_SUPREME_PATH` | Optional overrides if the forum moves |

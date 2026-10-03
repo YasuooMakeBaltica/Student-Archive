@@ -35,11 +35,16 @@ function row(label, value) {
         ...row('Case type', c.caseType),
         ...row('Status', c.status),
         ...row('Year', c.year ? String(c.year) : ''),
-        ...row('Laws cited', c.laws.length ? c.laws.join(', ') : '')),
-      section('Facts', c.summary, 'No facts recorded.'),
-      section('Arguments', c.arguments, 'No arguments recorded.'),
-      section('Verdict', c.verdict, c.status === 'Pending' || c.status === 'In Session' ? 'Awaiting verdict.' : 'No verdict recorded.'),
-      c.link ? el('p', {}, el('a', { href: c.link, target: '_blank', rel: 'noopener noreferrer', textContent: 'Read the original case thread ↗' })) : null,
+        ...row('Laws cited', c.laws.length ? c.laws.join(', ') : ''),
+        ...row('Last activity', c.activityAt ? new Date(c.activityAt).toLocaleDateString() : '')),
+      ...(c.source === 'forum'
+        ? [el('p', { className: 'notice', textContent: 'This case was imported automatically from the Democracy Craft court forums. The complaint, arguments and verdict are in the original thread.' })]
+        : [
+          section('Facts', c.summary, 'No facts recorded.'),
+          section('Arguments', c.arguments, 'No arguments recorded.'),
+          section('Verdict', c.verdict, c.status === 'Pending' || c.status === 'In Session' ? 'Awaiting verdict.' : 'No verdict recorded.'),
+        ]),
+      c.link ? el('p', {}, el('a', { className: c.source === 'forum' ? 'thread-link' : '', href: c.link, target: '_blank', rel: 'noopener noreferrer', textContent: 'Read the original case thread ↗' })) : null,
     ].filter(Boolean));
   } catch {
     $('#caseTitle').textContent = 'Case not found';

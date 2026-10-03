@@ -58,7 +58,7 @@ function caseCard(it) {
   const meta = [it.court, it.caseType, it.year].filter(Boolean).join(' · ');
   return el('article', { className: 'entry case' },
     el('div', { className: 'case-head' },
-      el('h2', {}, el('a', { href: `case.html?id=${it.id}`, textContent: it.title })),
+      el('h2', {}, el('a', { href: `case.html?id=${encodeURIComponent(it.id)}`, textContent: it.title })),
       it.status ? el('span', { className: `status status-${it.status.toLowerCase().replace(/\s+/g, '-')}`, textContent: it.status }) : null),
     el('p', { className: 'meta' },
       it.citation ? el('span', { className: 'citation', textContent: it.citation }) : null,
@@ -69,14 +69,19 @@ function caseCard(it) {
       className: 'tag', textContent: l, type: 'button', title: 'Find cases citing this law',
       onclick: () => { caseSearch.elements.law.value = l; load(); },
     })),
-    el('p', {}, el('a', { className: 'open-case', href: `case.html?id=${it.id}`, textContent: 'Open case file →' })),
+    el('p', {}, el('a', { className: 'open-case', href: `case.html?id=${encodeURIComponent(it.id)}`, textContent: 'Open case file →' })),
   );
 }
 
-function render(items) {
-  results.replaceChildren();
-  if (tab === 'cases') $('#caseCount').textContent = `${items.length} case${items.length === 1 ? '' : 's'} found`;
-  if (!items.length) {
+const PAGE_SIZE = 50;
+let shown = 0;
+
+function render(items, total, append) {
+  if (!append) results.replaceChildren();
+  shown = (append ? shown : 0) + items.length;
+  if (tab === 'cases') $('#caseCount').textContent = `${total} case${total === 1 ? '' : 's'} found`;
+  $('#loadMore').hidden = shown >= total;
+  if (!total) {
     results.append(el('p', { className: 'empty', textContent: 'Nothing found in the archive.' }));
     return;
   }
@@ -95,19 +100,74 @@ function query() {
 }
 
 let loadSeq = 0;
-async function load() {
+async function load(append = false) {
   const seq = ++loadSeq;
+  const params = query();
+  params.set('limit', PAGE_SIZE);
+  if (append) params.set('offset', shown);
   try {
-    const res = await fetch(`/api/${tab}?${query()}`);
+    const res = await fetch(`/api/${tab}?${params}`);
     const data = await res.json().catch(() => null);
     if (!res.ok || !Array.isArray(data)) throw new Error((data && data.error) || `Server error (${res.status})`);
-    if (seq === loadSeq) render(data); // ignore responses that arrive out of order
+    const total = parseInt(res.headers.get('X-Total-Count'), 10);
+    if (seq === loadSeq) render(data, Number.isInteger(total) ? total : data.length, append); // ignore stale responses
   } catch (err) {
     if (seq !== loadSeq) return;
     if (tab === 'cases') $('#caseCount').textContent = '';
+    $('#loadMore').hidden = true;
     results.replaceChildren(el('p', { className: 'empty', textContent: `Could not load the archive: ${err.message}` }));
   }
 }
+
+async function loadActive() {
+  const box = $('#activeCases');
+  try {
+    const items = await (await fetch('/api/cases/active')).json();
+    if (!Array.isArray(items) || !items.length) { box.hidden = true; return; }
+    $('#activeList').replaceChildren(...items.map((it) => el('a', { className: 'active-card', href: `case.html?id=${encodeURIComponent(it.id)}` },
+      el('span', { className: `status status-${it.status.toLowerCase().replace(/\s+/g, '-')}`, textContent: it.status }),
+      el('strong', { textContent: it.title }),
+      el('span', { className: 'meta', textContent: [it.citation, it.court].filter(Boolean).join(' · ') }))));
+    box.hidden = tab !== 'cases';
+  } catch { box.hidden = true; }
+}
+
+const ago = (t) => {
+  const mins = Math.round((Date.now() - t) / 60000);
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 48 * 60) return `${Math.round(mins / 60)} h ago`;
+  return `${Math.round(mins / 1440)} days ago`;
+};
+
+async function loadSyncStatus() {
+  const panel = $('#syncPanel');
+  panel.hidden = !(admin && tab === 'cases');
+  if (panel.hidden) return;
+  try {
+    const s = await (await fetch('/api/sync')).json();
+    const parts = [s.enabled ? `Forum sync on · ${s.imported} cases imported` : 'Forum sync is off (set SYNC_ENABLED=true)'];
+    if (s.lastRun) parts.push(`last run ${ago(s.lastRun.at)}`);
+    if (s.enabled && !s.backfillDone) parts.push('first full import still in progress');
+    if (s.lastRun && s.lastRun.errors && s.lastRun.errors.length) parts.push(`errors: ${s.lastRun.errors.join('; ')}`);
+    $('#syncStatus').textContent = parts.join(' · ');
+    $('#syncNow').disabled = !s.enabled;
+  } catch { $('#syncStatus').textContent = 'Could not read sync status.'; }
+}
+
+$('#syncNow').addEventListener('click', async () => {
+  const btn = $('#syncNow');
+  btn.disabled = true;
+  btn.textContent = 'Syncing… (up to a minute)';
+  try {
+    const res = await fetch('/api/sync', { method: 'POST' });
+    if (!res.ok) alert((await res.json().catch(() => ({}))).error || `Sync failed (${res.status})`);
+  } finally {
+    btn.textContent = 'Sync court forums now';
+    btn.disabled = false;
+    loadSyncStatus(); loadActive(); load();
+  }
+});
+$('#loadMore').addEventListener('click', () => load(true));
 
 async function moderate(it) {
   if (!it.hidden && !confirm(`Hide "${it.title}" from the public archive?`)) return;
@@ -171,6 +231,7 @@ async function loadAccount() {
     }
   } catch { /* leave account area empty */ }
   load();
+  loadSyncStatus();
 }
 
 function selectFor(name, blank) {
@@ -206,17 +267,18 @@ function showTab(name) {
   document.querySelectorAll('nav button').forEach((x) => x.classList.toggle('active', x.dataset.tab === name));
   $('#recordSearch').hidden = name !== 'records';
   caseSearch.hidden = name !== 'cases';
+  $('#activeCases').hidden = name !== 'cases' || !$('#activeList').childElementCount;
   search.value = ''; tagInput.value = ''; caseSearch.reset();
   try { history.replaceState(null, '', name === 'cases' ? '#cases' : location.pathname); } catch { /* ignore */ }
-  buildForm(); load();
+  buildForm(); load(); loadSyncStatus();
 }
 
 document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-search.addEventListener('input', load);
-tagInput.addEventListener('input', load);
-caseSearch.addEventListener('input', load);
+search.addEventListener('input', () => load());
+tagInput.addEventListener('input', () => load());
+caseSearch.addEventListener('input', () => load());
 caseSearch.addEventListener('submit', (e) => { e.preventDefault(); load(); });
-caseSearch.addEventListener('reset', () => setTimeout(load));
+caseSearch.addEventListener('reset', () => setTimeout(() => load()));
 
 (async () => {
   try { options = await (await fetch('/api/options')).json(); } catch { /* selects stay empty */ }
@@ -226,4 +288,5 @@ caseSearch.addEventListener('reset', () => setTimeout(load));
   }
   if (location.hash === '#cases') showTab('cases'); else buildForm();
   loadAccount();
+  loadActive();
 })();

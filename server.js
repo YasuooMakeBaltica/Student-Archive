@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { router: authRouter, getAdmin, requireAdmin } = require('./auth');
+const { runSync } = require('./sync');
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
@@ -174,25 +175,131 @@ const wrap = (fn) => (req, res) => fn(req, res).catch((err) => {
   res.status(500).json({ error: 'Storage error.' });
 });
 
+// --- Imported forum cases -------------------------------------------------
+// Stored apart from the main document (a Redis hash, one field per case) because
+// a full import holds thousands of cases.
+const FORUM_KEY = 'student-archive-forum-cases';
+let forumCache = null; // { at, list } — per-instance cache, refreshed every minute
+
+async function getForumCases() {
+  if (forumCache && Date.now() - forumCache.at < 60000) return forumCache.list;
+  let list;
+  if (redis) list = Object.values((await redis.hgetall(FORUM_KEY)) || {});
+  else list = Object.values((await loadDb()).forumCases || {});
+  forumCache = { at: Date.now(), list };
+  return list;
+}
+
+async function putForumCases(cases) {
+  if (!cases.length) return;
+  // Keep admin moderation (hidden flags) when a case is re-imported.
+  const existing = new Map((await getForumCases()).map((c) => [c.id, c]));
+  const merged = cases.map((c) => {
+    const old = existing.get(c.id);
+    return old && old.hidden ? { ...c, hidden: true, hiddenBy: old.hiddenBy, hiddenAt: old.hiddenAt } : c;
+  });
+  const entries = Object.fromEntries(merged.map((c) => [c.id, c]));
+  if (redis) {
+    await redis.hset(FORUM_KEY, entries);
+  } else {
+    const db = await loadDb();
+    db.forumCases = { ...(db.forumCases || {}), ...entries };
+    await saveDb(db);
+  }
+  forumCache = null;
+}
+
+const citationNumber = (c) => +((String(c.citation || '').match(/(\d+)\s*$/) || [])[1] || 0);
+const newestFirst = (a, b) => (b.year || 0) - (a.year || 0) || citationNumber(b) - citationNumber(a)
+  || String(b.id).localeCompare(String(a.id), undefined, { numeric: true });
+const ACTIVE_STATUSES = ['Pending', 'In Session'];
+
+async function allEntries(kind) {
+  const db = await loadDb();
+  return kind === 'cases' ? [...db.cases, ...(await getForumCases())] : db[kind];
+}
+
 const app = express();
 app.use(express.json({ limit: '50kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(authRouter);
 
-app.get('/api/options', (req, res) => res.json({ cases: CASE_OPTIONS }));
+app.get('/api/options', wrap(async (req, res) => {
+  // Imported cases can carry statuses beyond the defaults (e.g. "Accepted" on appeals).
+  const seen = new Set((await allEntries('cases')).map((c) => c.status).filter(Boolean));
+  const status = [...CASE_OPTIONS.status, ...[...seen].filter((s) => !CASE_OPTIONS.status.includes(s)).sort()];
+  res.json({ cases: { ...CASE_OPTIONS, status } });
+}));
 
+// The few most recently active open cases, shown on the finder without searching.
+app.get('/api/cases/active', wrap(async (req, res) => {
+  const active = (await allEntries('cases'))
+    .filter((c) => !c.hidden && ACTIVE_STATUSES.includes(c.status))
+    .sort((a, b) => (b.activityAt || 0) - (a.activityAt || 0) || newestFirst(a, b))
+    .slice(0, 3);
+  res.json(active);
+}));
+
+// --- Forum sync ----------------------------------------------------------
+const SYNC_OFF = 'Forum sync is switched off. Set SYNC_ENABLED=true in the environment once Democracy Craft staff have agreed.';
+
+async function syncBatch() {
+  const db = await loadDb();
+  const state = db.sync || {};
+  const result = await runSync({
+    state,
+    budgetMs: 45000,
+    upsert: putForumCases,
+    saveState: async (s) => {
+      const fresh = await loadDb();
+      fresh.sync = s;
+      // The made-up example cases go once real cases have been imported.
+      if ((await getForumCases()).length) fresh.cases = fresh.cases.filter((c) => !c.example);
+      await saveDb(fresh);
+    },
+  });
+  return { ...result, backfillDone: !!state.backfillDone, courts: state.courts };
+}
+
+// Daily Vercel cron job. Vercel sends "Authorization: Bearer <CRON_SECRET>".
+app.get('/api/cron/sync', wrap(async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized.' });
+  if (process.env.SYNC_ENABLED !== 'true') return res.status(503).json({ error: SYNC_OFF });
+  res.json(await syncBatch());
+}));
+
+// Admins can run a batch by hand (useful while the first full import is in progress).
+app.post('/api/sync', requireAdmin, wrap(async (req, res) => {
+  if (process.env.SYNC_ENABLED !== 'true') return res.status(503).json({ error: SYNC_OFF });
+  res.json(await syncBatch());
+}));
+
+app.get('/api/sync', requireAdmin, wrap(async (req, res) => {
+  const db = await loadDb();
+  res.json({
+    enabled: process.env.SYNC_ENABLED === 'true',
+    imported: (await getForumCases()).length,
+    ...(db.sync || {}),
+  });
+}));
+
+// --- Entries ---------------------------------------------------------------
 for (const [kind, { clean, matches, required }] of Object.entries(KINDS)) {
   app.get(`/api/${kind}`, wrap(async (req, res) => {
     // Hidden (soft-deleted) entries are only visible to admins who ask for them.
     const showHidden = req.query.hidden === '1' && !!getAdmin(req);
-    const items = (await loadDb())[kind]
+    const items = (await allEntries(kind))
       .filter((it) => (!it.hidden || showHidden) && matches(it, req.query))
-      .sort((a, b) => (b.year || 0) - (a.year || 0) || b.id - a.id);
-    res.json(items);
+      .sort(newestFirst);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+    res.set('X-Total-Count', String(items.length));
+    res.json(items.slice(offset, offset + limit));
   }));
 
   app.get(`/api/${kind}/:id`, wrap(async (req, res) => {
-    const item = (await loadDb())[kind].find((i) => i.id === parseInt(req.params.id, 10));
+    const item = (await allEntries(kind)).find((i) => String(i.id) === req.params.id);
     if (!item || (item.hidden && !getAdmin(req))) return res.status(404).json({ error: 'Not found.' });
     res.json(item);
   }));
@@ -201,7 +308,7 @@ for (const [kind, { clean, matches, required }] of Object.entries(KINDS)) {
     const item = clean(req.body || {});
     if (!item) return res.status(400).json({ error: required });
     const db = await loadDb();
-    item.id = db[kind].reduce((m, i) => Math.max(m, i.id), 0) + 1;
+    item.id = db[kind].reduce((m, i) => (Number.isInteger(i.id) ? Math.max(m, i.id) : m), 0) + 1;
     db[kind].push(item);
     await saveDb(db);
     res.status(201).json(item);
@@ -209,9 +316,12 @@ for (const [kind, { clean, matches, required }] of Object.entries(KINDS)) {
 
   // Admin moderation: hide (soft delete) or restore an entry.
   const setHidden = (hidden) => wrap(async (req, res) => {
+    const forum = kind === 'cases' && req.params.id.startsWith('t');
     const db = await loadDb();
-    const item = db[kind].find((i) => i.id === parseInt(req.params.id, 10));
-    if (!item) return res.status(404).json({ error: 'Not found.' });
+    const pool = forum ? await getForumCases() : db[kind];
+    const found = pool.find((i) => String(i.id) === req.params.id);
+    if (!found) return res.status(404).json({ error: 'Not found.' });
+    const item = { ...found };
     if (hidden) {
       item.hidden = true;
       item.hiddenBy = getAdmin(req).name;
@@ -219,7 +329,16 @@ for (const [kind, { clean, matches, required }] of Object.entries(KINDS)) {
     } else {
       delete item.hidden; delete item.hiddenBy; delete item.hiddenAt;
     }
-    await saveDb(db);
+    if (forum) {
+      const entry = { [item.id]: item };
+      if (redis) await redis.hset(FORUM_KEY, entry);
+      else { db.forumCases = { ...(db.forumCases || {}), ...entry }; await saveDb(db); }
+      forumCache = null;
+    } else {
+      Object.assign(found, item);
+      if (!hidden) { delete found.hidden; delete found.hiddenBy; delete found.hiddenAt; }
+      await saveDb(db);
+    }
     res.json(item);
   });
   app.delete(`/api/${kind}/:id`, requireAdmin, setHidden(true));

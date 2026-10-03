@@ -213,3 +213,22 @@ select {
 .case-section p { white-space: pre-line; }
 .muted { color: var(--ink-soft); font-style: italic; }
 .case-file a { color: var(--accent); }
+
+.active-cases { margin-bottom: 1rem; }
+.active-cases h2 { font-size: 1rem; margin: 0 0 0.5rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); }
+.active-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.6rem; }
+.active-card {
+  display: grid; gap: 0.25rem; align-content: start; padding: 0.7rem 0.8rem;
+  border: 1px solid var(--accent); background: var(--card); color: var(--ink); text-decoration: none;
+}
+.active-card:hover strong { text-decoration: underline; }
+.active-card .status { justify-self: start; }
+.active-card .meta { margin: 0; }
+.sync-panel {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between;
+  font-size: 0.85rem; color: var(--ink-soft); border: 1px dashed var(--rule); padding: 0.5rem 0.8rem; margin-bottom: 1rem;
+}
+.sync-panel[hidden], .active-cases[hidden] { display: none; }
+.btn-plain:disabled { opacity: 0.6; cursor: default; }
+.more { text-align: center; }
+.thread-link { font-size: 1.05rem; }

@@ -43,6 +43,16 @@
       <input id="tag" type="text" placeholder="Filter by tag">
     </section>
 
+    <section class="active-cases" id="activeCases" hidden>
+      <h2>Active cases</h2>
+      <div class="active-list" id="activeList"></div>
+    </section>
+
+    <div class="sync-panel" id="syncPanel" hidden>
+      <span id="syncStatus">Forum sync</span>
+      <button type="button" class="btn-plain" id="syncNow">Sync court forums now</button>
+    </div>
+
     <form class="case-search" id="caseSearch" hidden>
       <label class="wide">Keywords <input name="q" type="search" placeholder="Facts, arguments, verdict…"></label>
       <label>Parties <input name="parties" placeholder="Plaintiff or defendant"></label>
@@ -60,6 +70,7 @@
     </form>
 
     <section id="results" aria-live="polite"></section>
+    <p class="more"><button type="button" class="btn-plain" id="loadMore" hidden>Show more</button></p>
 
     <details class="add" id="addBox" hidden>
       <summary>Add an entry</summary>

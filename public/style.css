@@ -258,8 +258,10 @@ select {
 /* The plank: a slider styled as the wooden shelf, with a lighter brown handle. */
 .shelf-scroller {
   -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 1.1rem; margin: 0;
-  background: var(--plank); border-top: 2px solid var(--plank-edge); cursor: pointer;
+  background: var(--plank); cursor: pointer; flex: 1; min-width: 0;
 }
+.plank { display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0.4rem; background: var(--plank); border-top: 2px solid var(--plank-edge); }
+.plank-logo { width: 2rem; height: 2rem; flex: none; margin: -0.35rem 0; filter: drop-shadow(0 0 1px #f1e2c4) drop-shadow(0 0 1px #f1e2c4); }
 .shelf-scroller:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .shelf-scroller::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none; width: 4.5rem; height: 0.8rem; border-radius: 2px;

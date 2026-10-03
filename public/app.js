@@ -186,7 +186,13 @@ function bookshelf(items) {
   shelf.addEventListener('scroll', sync, { passive: true });
   scroller.addEventListener('input', () => { shelf.scrollLeft = (scroller.value / 1000) * maxScroll(); });
   new ResizeObserver(sync).observe(shelf);
-  return el('div', { className: 'shelf-wrap' }, shelf, scroller);
+  // The diamond book logo from the title sits at each end of the plank.
+  const logo = () => {
+    const icon = document.querySelector('.title .book').cloneNode(true);
+    icon.setAttribute('class', 'book plank-logo');
+    return icon;
+  };
+  return el('div', { className: 'shelf-wrap' }, shelf, el('div', { className: 'plank' }, logo(), scroller, logo()));
 }
 
 function spineSlot(it) {

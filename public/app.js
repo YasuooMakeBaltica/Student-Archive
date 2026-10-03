@@ -171,23 +171,39 @@ function spineFoot(it) {
   return String(it.citation || '').replace(/^\[\d{4}\]\s*/, '') || (it.year ? String(it.year) : '');
 }
 
+// One long shelf that scrolls sideways. The plank under the books is the scroller:
+// a slider kept in step with the shelf's scroll position (works with mouse, touch and keys).
 function bookshelf(items) {
-  return el('div', { className: 'shelf' }, ...items.map((it) => {
-    const look = spineLook(it);
-    const spine = el('button', {
-      type: 'button',
-      className: `book-spine${it.hidden ? ' is-hidden' : ''}`,
-      title: [it.title, it.author, it.citation, it.status].filter(Boolean).join(' — '),
-      onclick: () => openBook(it),
-    },
-    el('span', { className: 'spine-title', textContent: it.title }),
-    spineFoot(it) ? el('span', { className: 'spine-year', textContent: spineFoot(it) }) : null);
-    if (tab === 'cases' && it.status) spine.dataset.status = it.status.toLowerCase().replace(/\s+/g, '-');
-    spine.style.setProperty('--spine', look.colour);
-    spine.style.width = `${look.width}rem`;
-    spine.style.height = `${look.height}rem`;
-    return el('div', { className: 'book-slot' }, spine);
-  }));
+  const shelf = el('div', { className: 'shelf' }, ...items.map(spineSlot));
+  const scroller = el('input', { type: 'range', className: 'shelf-scroller', min: 0, max: 1000, value: 0, step: 1 });
+  scroller.setAttribute('aria-label', 'Scroll the shelf');
+  const maxScroll = () => shelf.scrollWidth - shelf.clientWidth;
+  const sync = () => {
+    const max = maxScroll();
+    scroller.disabled = max <= 1;
+    scroller.value = max > 1 ? Math.round((shelf.scrollLeft / max) * 1000) : 0;
+  };
+  shelf.addEventListener('scroll', sync, { passive: true });
+  scroller.addEventListener('input', () => { shelf.scrollLeft = (scroller.value / 1000) * maxScroll(); });
+  new ResizeObserver(sync).observe(shelf);
+  return el('div', { className: 'shelf-wrap' }, shelf, scroller);
+}
+
+function spineSlot(it) {
+  const look = spineLook(it);
+  const spine = el('button', {
+    type: 'button',
+    className: `book-spine${it.hidden ? ' is-hidden' : ''}`,
+    title: [it.title, it.author, it.citation, it.status].filter(Boolean).join(' — '),
+    onclick: () => openBook(it),
+  },
+  el('span', { className: 'spine-title', textContent: it.title }),
+  spineFoot(it) ? el('span', { className: 'spine-year', textContent: spineFoot(it) }) : null);
+  if (tab === 'cases' && it.status) spine.dataset.status = it.status.toLowerCase().replace(/\s+/g, '-');
+  spine.style.setProperty('--spine', look.colour);
+  spine.style.width = `${look.width}rem`;
+  spine.style.height = `${look.height}rem`;
+  return el('div', { className: 'book-slot' }, spine);
 }
 
 function openBook(it) {

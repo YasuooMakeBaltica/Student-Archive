@@ -245,15 +245,34 @@ select {
 /* Library bookshelf: each row of spines stands on a 1rem wooden plank. */
 :root { --plank: #6b4a2b; --plank-edge: #4f3622; }
 :root[data-theme="dark"] { --plank: #4a3420; --plank-edge: #2e2014; }
+.shelf-wrap { border: 2px solid var(--plank-edge); border-top-width: 0.5rem; background: var(--paper-dark); }
 .shelf {
-  display: flex; flex-wrap: wrap; align-content: flex-start; column-gap: 0.25rem; row-gap: 1rem;
-  padding: 0 0.8rem 1rem;
-  border: 2px solid var(--plank-edge); border-top-width: 0.5rem;
-  background:
-    repeating-linear-gradient(to bottom, transparent 0 12rem, var(--plank) 12rem 12.8rem, var(--plank-edge) 12.8rem 13rem),
-    var(--paper-dark);
+  display: flex; flex-wrap: nowrap; column-gap: 0.25rem;
+  padding: 1rem 0.8rem 0; /* room above so hovered books can pop up without being cut off */
+  overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth;
+  scrollbar-width: none; /* the plank below is the scroller */
 }
-.book-slot { height: 12rem; display: flex; align-items: flex-end; }
+.shelf::-webkit-scrollbar { display: none; }
+.book-slot { flex: none; height: 12rem; display: flex; align-items: flex-end; }
+
+/* The plank: a slider styled as the wooden shelf, with a lighter brown handle. */
+.shelf-scroller {
+  -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 1.1rem; margin: 0;
+  background: var(--plank); border-top: 2px solid var(--plank-edge); cursor: pointer;
+}
+.shelf-scroller:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shelf-scroller::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 4.5rem; height: 0.8rem; border-radius: 2px;
+  background: #b48f63; border: 1px solid var(--plank-edge); box-shadow: inset 0 1px 0 rgba(255, 240, 210, 0.35);
+}
+.shelf-scroller::-moz-range-thumb {
+  width: 4.5rem; height: 0.8rem; border-radius: 2px;
+  background: #b48f63; border: 1px solid var(--plank-edge); box-shadow: inset 0 1px 0 rgba(255, 240, 210, 0.35);
+}
+.shelf-scroller::-moz-range-track { background: transparent; }
+.shelf-scroller:disabled { cursor: default; }
+.shelf-scroller:disabled::-webkit-slider-thumb { opacity: 0; }
+.shelf-scroller:disabled::-moz-range-thumb { opacity: 0; }
 .book-spine {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
   padding: 0.7rem 0 0.5rem; cursor: pointer; overflow: hidden;

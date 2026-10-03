@@ -78,7 +78,8 @@ async function saveDb(db, { required = true } = {}) {
   }
 }
 
-const RECORD_FIELDS = ['title', 'author', 'type', 'year', 'tags', 'summary'];
+const RECORD_FIELDS = ['title', 'author', 'type', 'year', 'tags', 'summary', 'link'];
+const httpLink = (v) => { const l = str(v, 300); return /^https?:\/\//i.test(l) ? l : ''; };
 
 const CASE_OPTIONS = {
   court: ['District Court', 'Federal Court', 'Supreme Court'],
@@ -106,6 +107,7 @@ function cleanRecord(body) {
     let v = body[f];
     if (f === 'tags') v = list(v, 10).map((t) => t.toLowerCase());
     else if (f === 'year') v = year(v);
+    else if (f === 'link') v = httpLink(v);
     else v = str(v, f === 'summary' ? 1000 : 200);
     out[f] = v;
   }
@@ -321,6 +323,8 @@ for (const [kind, { clean, matches, required }] of Object.entries(KINDS)) {
   app.post(`/api/${kind}`, requireAdmin, wrap(async (req, res) => {
     const item = clean(req.body || {});
     if (!item) return res.status(400).json({ error: required });
+    // Every new entry must point back to the forum post it came from.
+    if (!item.link) return res.status(400).json({ error: 'A link to the forum post where this was found (starting with http) is required.' });
     const db = await loadDb();
     item.id = db[kind].reduce((m, i) => (Number.isInteger(i.id) ? Math.max(m, i.id) : m), 0) + 1;
     db[kind].push(item);

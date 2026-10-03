@@ -279,3 +279,6 @@ select {
   position: absolute; top: 0.2rem; right: 0.4rem; font: inherit; font-size: 1.4rem; line-height: 1;
   color: var(--ink-soft); background: none; border: none; cursor: pointer;
 }
+
+.forum-link { color: var(--accent); font-size: 0.9rem; }
+.case-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; }

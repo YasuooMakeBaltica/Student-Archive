@@ -3,6 +3,7 @@ const SCHEMAS = {
   records: [
     ['title', 'Title'], ['author', 'Author'], ['type', 'Type (paper, book, source…)'],
     ['year', 'Year'], ['tags', 'Tags (comma separated)'], ['summary', 'Summary', 'long'],
+    ['link', 'Link to the forum post where it was found'],
   ],
   cases: [
     ['plaintiff', 'Plaintiff (or "In re …" for appeals)'], ['defendant', 'Defendant'],
@@ -10,7 +11,7 @@ const SCHEMAS = {
     ['caseType', 'Case type', 'select'], ['status', 'Status', 'select'], ['year', 'Year'],
     ['laws', 'Laws cited (comma separated)'], ['summary', 'Facts', 'long'],
     ['arguments', 'Arguments', 'long'], ['verdict', 'Verdict & reasoning', 'long'],
-    ['link', 'Link to forum thread'],
+    ['link', 'Link to the forum thread'],
   ],
 };
 const REQUIRED = { records: 'title', cases: 'plaintiff' };
@@ -51,7 +52,13 @@ function recordCard(it) {
       className: 'tag', textContent: t, type: 'button',
       onclick: () => { tagInput.value = t; $('#bookDialog').close(); load(); },
     })),
+    forumLink(it, 'View the forum post ↗'),
   );
+}
+
+function forumLink(it, text) {
+  if (!it.link) return null;
+  return el('p', {}, el('a', { className: 'forum-link', href: it.link, target: '_blank', rel: 'noopener noreferrer', textContent: text }));
 }
 
 function caseCard(it) {
@@ -69,7 +76,9 @@ function caseCard(it) {
       className: 'tag', textContent: l, type: 'button', title: 'Find cases citing this law',
       onclick: () => { caseSearch.elements.law.value = l; load(); },
     })),
-    el('p', {}, el('a', { className: 'open-case', href: `case.html?id=${encodeURIComponent(it.id)}`, textContent: 'Open case file →' })),
+    el('p', { className: 'case-links' },
+      el('a', { className: 'open-case', href: `case.html?id=${encodeURIComponent(it.id)}`, textContent: 'Open case file →' }),
+      it.link ? el('a', { className: 'forum-link', href: it.link, target: '_blank', rel: 'noopener noreferrer', textContent: 'Forum thread ↗' }) : null),
   );
 }
 
@@ -329,7 +338,7 @@ function buildForm() {
     ...SCHEMAS[tab].map(([name, label, kind]) => el('label', {},
       label,
       kind === 'select' ? selectFor(name, '—')
-        : el(kind === 'long' ? 'textarea' : 'input', { name, rows: 4, required: name === REQUIRED[tab] }),
+        : el(kind === 'long' ? 'textarea' : 'input', { name, rows: 4, required: name === REQUIRED[tab] || name === 'link', ...(name === 'link' ? { type: 'url', placeholder: 'https://www.democracycraft.net/threads/…' } : {}) }),
     )),
     el('button', { type: 'submit', textContent: 'Add to archive' }),
   );

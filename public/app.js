@@ -75,6 +75,9 @@ async function moderate(it) {
 function isDark() { return document.documentElement.dataset.theme === 'dark'; }
 
 function setTheme(dark) {
+  const root = document.documentElement;
+  root.classList.add('theme-fade');
+  setTimeout(() => root.classList.remove('theme-fade'), 300);
   if (dark) document.documentElement.dataset.theme = 'dark';
   else delete document.documentElement.dataset.theme;
   try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch { /* storage unavailable */ }
@@ -93,7 +96,7 @@ async function loadAccount() {
         onclick: () => { setTheme(!isDark()); themeItem.textContent = isDark() ? 'Light mode' : 'Dark mode'; },
       });
       themeItem.textContent = isDark() ? 'Light mode' : 'Dark mode';
-      const menu = el('div', { className: 'menu', hidden: true },
+      const menu = el('div', { className: 'menu' },
         el('div', { className: 'menu-user' },
           el('span', { className: 'name', textContent: me.name }),
           ...(admin ? [el('span', { className: 'badge', textContent: 'Admin' })] : [])),
@@ -104,11 +107,11 @@ async function loadAccount() {
         }));
       const toggle = el('button', {
         className: 'avatar-btn', type: 'button', title: 'Account menu',
-        onclick: (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; toggle.setAttribute('aria-expanded', String(!menu.hidden)); },
+        onclick: (e) => { e.stopPropagation(); menu.classList.toggle('open'); toggle.setAttribute('aria-expanded', String(menu.classList.contains('open'))); },
       }, el('img', { src: me.avatarUrl, alt: `${me.name}'s Discord avatar`, referrerPolicy: 'no-referrer' }));
       toggle.setAttribute('aria-haspopup', 'true');
       toggle.setAttribute('aria-expanded', 'false');
-      const close = () => { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+      const close = () => { menu.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); };
       document.addEventListener('click', (e) => { if (!box.contains(e.target)) close(); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
       box.append(toggle, menu);

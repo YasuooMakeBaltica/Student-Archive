@@ -1,4 +1,4 @@
-/* Muted sepia theme. The only animation is the account dropdown. */
+/* Muted sepia theme. Motion is limited to the account dropdown and the light/dark fade. */
 :root {
   --paper: #e9dcc3;
   --paper-dark: #d8c7a6;
@@ -115,15 +115,20 @@ footer { text-align: center; padding: 1.5rem; color: var(--ink-soft); font-size:
   position: absolute; right: 0; top: calc(100% + 0.4rem); z-index: 10;
   min-width: 11rem; text-align: left;
   background: var(--paper); border: 1px solid var(--rule); box-shadow: 2px 2px 0 var(--rule);
+  opacity: 0; visibility: hidden; transform: translateY(-6px); pointer-events: none;
+  transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 0s linear 150ms;
 }
-#account .menu[hidden] { display: none; }
-#account .menu:not([hidden]) { animation: menu-in 120ms ease-out; }
-@keyframes menu-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+#account .menu.open {
+  opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto;
+  transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 0s;
+}
+/* Brief, very slight fade when switching between light and dark. */
+html.theme-fade, html.theme-fade * {
+  transition: background-color 250ms ease, color 250ms ease, border-color 250ms ease !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  #account .menu:not([hidden]) { animation: none; }
+  #account .menu, #account .menu.open { transition: none; transform: none; }
+  html.theme-fade, html.theme-fade * { transition: none !important; }
 }
 .menu-user {
   display: flex; align-items: center; gap: 0.5rem;

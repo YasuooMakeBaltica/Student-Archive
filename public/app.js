@@ -73,14 +73,45 @@ function caseCard(it) {
   );
 }
 
-const PAGE_SIZE = 50;
-let shown = 0;
+const PAGE_SIZE = 20;
+let currentPage = 1;
 
-function render(items, total, append) {
-  if (!append) results.replaceChildren();
-  shown = (append ? shown : 0) + items.length;
-  if (tab === 'cases') $('#caseCount').textContent = `${total} case${total === 1 ? '' : 's'} found`;
-  $('#loadMore').hidden = shown >= total;
+// Page links: first, last, and two either side of the current page, with gaps as "…".
+function pageList(page, pages) {
+  const out = [];
+  for (let n = 1; n <= pages; n += 1) {
+    if (n === 1 || n === pages || Math.abs(n - page) <= 2) out.push(n);
+    else if (out[out.length - 1] !== '…') out.push('…');
+  }
+  return out;
+}
+
+function renderPager(page, total) {
+  const pager = $('#pager');
+  const pages = Math.ceil(total / PAGE_SIZE);
+  pager.hidden = pages <= 1;
+  if (pager.hidden) return pager.replaceChildren();
+  const go = (n) => () => { load(n); results.scrollIntoView({ block: 'start' }); };
+  pager.replaceChildren(
+    el('button', { type: 'button', className: 'page-btn', textContent: '‹ Prev', disabled: page <= 1, onclick: go(page - 1) }),
+    ...pageList(page, pages).map((n) => (n === '…'
+      ? el('span', { className: 'page-gap', textContent: '…' })
+      : el('button', {
+        type: 'button', className: n === page ? 'page-btn current' : 'page-btn', textContent: String(n),
+        disabled: n === page, onclick: go(n),
+      }))),
+    el('button', { type: 'button', className: 'page-btn', textContent: 'Next ›', disabled: page >= pages, onclick: go(page + 1) }),
+  );
+}
+
+function render(items, total, page) {
+  results.replaceChildren();
+  currentPage = page;
+  if (tab === 'cases') {
+    const pages = Math.ceil(total / PAGE_SIZE);
+    $('#caseCount').textContent = `${total} case${total === 1 ? '' : 's'} found${pages > 1 ? ` · page ${page} of ${pages}` : ''}`;
+  }
+  renderPager(page, total);
   if (!total) {
     results.append(el('p', { className: 'empty', textContent: 'Nothing found in the archive.' }));
     return;
@@ -100,23 +131,34 @@ function query() {
 }
 
 let loadSeq = 0;
-async function load(append = false) {
+async function load(page = 1) {
   const seq = ++loadSeq;
   const params = query();
   params.set('limit', PAGE_SIZE);
-  if (append) params.set('offset', shown);
+  params.set('offset', (page - 1) * PAGE_SIZE);
   try {
     const res = await fetch(`/api/${tab}?${params}`);
     const data = await res.json().catch(() => null);
     if (!res.ok || !Array.isArray(data)) throw new Error((data && data.error) || `Server error (${res.status})`);
-    const total = parseInt(res.headers.get('X-Total-Count'), 10);
-    if (seq === loadSeq) render(data, Number.isInteger(total) ? total : data.length, append); // ignore stale responses
+    if (seq !== loadSeq) return; // a newer request has started; ignore this one
+    const header = parseInt(res.headers.get('X-Total-Count'), 10);
+    const total = Number.isInteger(header) ? header : data.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (page > pages) return load(pages); // e.g. the last entry on the last page was hidden
+    render(data, total, page);
   } catch (err) {
     if (seq !== loadSeq) return;
     if (tab === 'cases') $('#caseCount').textContent = '';
-    $('#loadMore').hidden = true;
+    $('#pager').hidden = true;
     results.replaceChildren(el('p', { className: 'empty', textContent: `Could not load the archive: ${err.message}` }));
   }
+}
+
+// Wait until typing pauses before searching, instead of sending a request per keystroke.
+let typingTimer;
+function loadSoon() {
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => load(), 250);
 }
 
 async function loadActive() {
@@ -169,14 +211,13 @@ $('#syncNow').addEventListener('click', async () => {
     loadSyncStatus(); loadActive(); load();
   }
 });
-$('#loadMore').addEventListener('click', () => load(true));
 
 async function moderate(it) {
   if (!it.hidden && !confirm(`Hide "${it.title}" from the public archive?`)) return;
   const res = await fetch(it.hidden ? `/api/${tab}/${it.id}/restore` : `/api/${tab}/${it.id}`, {
     method: it.hidden ? 'POST' : 'DELETE',
   });
-  if (res.ok) load(); else alert((await res.json()).error);
+  if (res.ok) load(currentPage); else alert((await res.json()).error);
 }
 
 function isDark() { return document.documentElement.dataset.theme === 'dark'; }
@@ -276,9 +317,9 @@ function showTab(name) {
 }
 
 document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-search.addEventListener('input', () => load());
-tagInput.addEventListener('input', () => load());
-caseSearch.addEventListener('input', () => load());
+search.addEventListener('input', loadSoon);
+tagInput.addEventListener('input', loadSoon);
+caseSearch.addEventListener('input', loadSoon);
 caseSearch.addEventListener('submit', (e) => { e.preventDefault(); load(); });
 caseSearch.addEventListener('reset', () => setTimeout(() => load()));
 

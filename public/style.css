@@ -230,5 +230,14 @@ select {
 }
 .sync-panel[hidden], .active-cases[hidden] { display: none; }
 .btn-plain:disabled { opacity: 0.6; cursor: default; }
-.more { text-align: center; }
 .thread-link { font-size: 1.05rem; }
+
+.pager { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.35rem; margin: 1rem 0; }
+.pager[hidden] { display: none; }
+.page-btn {
+  font: inherit; font-size: 0.9rem; min-width: 2.2rem; padding: 0.3rem 0.6rem; cursor: pointer;
+  color: var(--ink); background: var(--card); border: 1px solid var(--rule);
+}
+.page-btn.current { background: var(--accent); color: var(--paper); border-color: var(--accent); cursor: default; }
+.page-btn:disabled:not(.current) { opacity: 0.45; cursor: default; }
+.page-gap { color: var(--ink-soft); padding: 0 0.2rem; }

@@ -7,14 +7,33 @@ const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const SEED_FILE = path.join(DATA_DIR, 'seed.json');
 
-function loadDb() {
-  if (!fs.existsSync(DB_FILE)) {
-    fs.copyFileSync(SEED_FILE, DB_FILE);
+// Storage: Upstash Redis (Vercel Marketplace "KV") when its env vars are set,
+// otherwise a local JSON file for development.
+const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const DB_KEY = 'student-archive-db';
+const seed = () => JSON.parse(fs.readFileSync(SEED_FILE, 'utf8'));
+
+let redis = null;
+if (REDIS_URL && REDIS_TOKEN) {
+  const { Redis } = require('@upstash/redis');
+  redis = new Redis({ url: REDIS_URL, token: REDIS_TOKEN });
+}
+
+async function loadDb() {
+  if (redis) {
+    const db = await redis.get(DB_KEY);
+    if (db) return db;
+    const fresh = seed();
+    await redis.set(DB_KEY, fresh);
+    return fresh;
   }
+  if (!fs.existsSync(DB_FILE)) fs.copyFileSync(SEED_FILE, DB_FILE);
   return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
 }
 
-function saveDb(db) {
+async function saveDb(db) {
+  if (redis) return redis.set(DB_KEY, db);
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
@@ -43,15 +62,20 @@ function clean(kind, body) {
   return out.title ? out : null;
 }
 
+const wrap = (fn) => (req, res) => fn(req, res).catch((err) => {
+  console.error(err);
+  res.status(500).json({ error: 'Storage error.' });
+});
+
 const app = express();
 app.use(express.json({ limit: '50kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 for (const kind of ['records', 'cases']) {
-  app.get(`/api/${kind}`, (req, res) => {
+  app.get(`/api/${kind}`, wrap(async (req, res) => {
     const q = String(req.query.q || '').toLowerCase();
     const tag = String(req.query.tag || '').toLowerCase();
-    const items = loadDb()[kind].filter((it) => {
+    const items = (await loadDb())[kind].filter((it) => {
       if (tag && !it.tags.includes(tag)) return false;
       if (!q) return true;
       return [it.title, it.author, it.category, it.type, it.summary, it.outcome, ...it.tags]
@@ -59,17 +83,21 @@ for (const kind of ['records', 'cases']) {
         .some((s) => String(s).toLowerCase().includes(q));
     });
     res.json(items);
-  });
+  }));
 
-  app.post(`/api/${kind}`, (req, res) => {
+  app.post(`/api/${kind}`, wrap(async (req, res) => {
     const item = clean(kind, req.body || {});
     if (!item) return res.status(400).json({ error: 'A title is required.' });
-    const db = loadDb();
+    const db = await loadDb();
     item.id = db[kind].reduce((m, i) => Math.max(m, i.id), 0) + 1;
     db[kind].push(item);
-    saveDb(db);
+    await saveDb(db);
     res.status(201).json(item);
-  });
+  }));
 }
 
-app.listen(PORT, () => console.log(`Student Archive running at http://localhost:${PORT}`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Student Archive running at http://localhost:${PORT}`));
+}
+
+module.exports = app;

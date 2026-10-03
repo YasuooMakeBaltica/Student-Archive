@@ -20,3 +20,12 @@ Then open http://localhost:3000.
 ## License
 
 MIT – see [LICENSE](LICENSE).
+
+## Deploy to Vercel
+
+1. Import the repo in Vercel.
+2. In the project's **Storage** tab, add an **Upstash Redis** database (Marketplace). This sets
+   `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically.
+3. Deploy. The archive is seeded from `data/seed.json` on first request and entries persist in Redis.
+
+Without those variables (local development) the app falls back to `data/db.json`.

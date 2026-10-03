@@ -128,10 +128,6 @@ footer { text-align: center; padding: 1.5rem; color: var(--ink-soft); font-size:
 html.theme-fade, html.theme-fade * {
   transition: background-color 250ms ease, color 250ms ease, border-color 250ms ease !important;
 }
-@media (prefers-reduced-motion: reduce) {
-  #account .menu, #account .menu.open { transition: none; transform: none; }
-  html.theme-fade, html.theme-fade * { transition: none !important; }
-}
 .menu-user {
   display: flex; align-items: center; gap: 0.5rem;
   padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--rule);
@@ -153,3 +149,10 @@ html.theme-fade, html.theme-fade * {
   border: none; padding: 0.15rem 0.7rem; margin-top: 0.5rem; cursor: pointer;
 }
 .admin-btn.restore { background: var(--accent); }
+
+footer a { color: var(--accent); }
+.terms { max-width: 44rem; margin: 0 auto; padding: 1.5rem 1rem 2rem; }
+.terms h2 { margin: 1.6rem 0 0.3rem; font-size: 1.15rem; }
+.terms p, .terms li { margin: 0.4rem 0; }
+.terms .updated { color: var(--ink-soft); font-style: italic; }
+.terms .back { display: inline-block; margin-bottom: 1rem; color: var(--accent); }

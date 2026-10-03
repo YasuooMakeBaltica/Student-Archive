@@ -394,12 +394,21 @@ select {
     var(--card);
   padding-top: 1.3rem;
 }
-.stamp {
-  position: absolute; top: 0.9rem; right: 0.9rem; transform: rotate(4deg);
-  font-size: 0.6rem; line-height: 1.15; text-align: center; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--accent); border: 2px dashed var(--accent); padding: 0.3rem 0.4rem; background: var(--paper);
+.stamp { /* postage stamp with perforated edges, bearing the diamond book logo */
+  position: absolute; top: 0.8rem; right: 0.9rem; transform: rotate(5deg);
+  padding: 5px; background: #fbf5e8;
+  /* solid in the middle, holes only around the 5px edge */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, radial-gradient(circle at 4px 4px, transparent 2.2px, #000 2.6px) -4px -4px / 8px 8px padding-box;
+          mask: linear-gradient(#000 0 0) content-box, radial-gradient(circle at 4px 4px, transparent 2.2px, #000 2.6px) -4px -4px / 8px 8px padding-box;
+  filter: drop-shadow(1px 1px 0 rgba(60, 40, 20, 0.25));
 }
-.mail-box h3 { padding-right: 4.5rem; }
+.stamp-inner {
+  display: grid; justify-items: center; gap: 0.15rem; width: 3.6rem; padding: 0.35rem 0.2rem 0.25rem;
+  border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--paper));
+}
+.stamp-logo { width: 2rem; height: 2rem; }
+.stamp-text { font-size: 0.5rem; line-height: 1.1; letter-spacing: 0.08em; text-transform: uppercase; text-align: center; color: var(--accent); }
+.mail-box h3, .mail-box > p:first-of-type { padding-right: 4.6rem; }
 
 /* Dilapidated donation box: tilted, taped up, stained, cracked, with a torn bottom edge. */
 .donate-box {
@@ -434,3 +443,4 @@ select {
 .donate-box .copy-btn { background: color-mix(in srgb, var(--accent) 80%, #5a4a3a); }
 :root[data-theme="dark"] .donate-box { --stain: rgba(0, 0, 0, 0.28); }
 :root[data-theme="dark"] .donate-box::before, :root[data-theme="dark"] .donate-box::after { background: rgba(120, 104, 70, 0.6); }
+:root[data-theme="dark"] .stamp { background: #4a3f2c; }

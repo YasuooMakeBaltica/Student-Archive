@@ -49,7 +49,7 @@ function recordCard(it) {
     it.summary ? el('p', { textContent: it.summary }) : null,
     ...it.tags.map((t) => el('button', {
       className: 'tag', textContent: t, type: 'button',
-      onclick: () => { tagInput.value = t; load(); },
+      onclick: () => { tagInput.value = t; $('#bookDialog').close(); load(); },
     })),
   );
 }
@@ -116,11 +116,52 @@ function render(items, total, page) {
     results.append(el('p', { className: 'empty', textContent: 'Nothing found in the archive.' }));
     return;
   }
+  if (tab === 'records') {
+    results.append(bookshelf(items));
+    return;
+  }
   for (const it of items) {
-    const entry = tab === 'cases' ? caseCard(it) : recordCard(it);
+    const entry = caseCard(it);
     adminControls(entry, it);
     results.append(entry);
   }
+}
+
+// --- Bookshelf view for the Library Database --------------------------------
+// Each record is a book spine; its colour, width and height come from its id so a
+// book always looks the same. Clicking a spine opens the full record.
+const SPINE_COLOURS = ['#6b4a2b', '#7d5a3a', '#5a4632', '#8b6b47', '#4f3b2a', '#76603f', '#64503b', '#8a5f3c'];
+
+function spineLook(it) {
+  let h = 0;
+  for (const ch of `${it.id}${it.title}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return { colour: SPINE_COLOURS[h % SPINE_COLOURS.length], width: 2.6 + (h % 5) * 0.2, height: 9.5 + ((h >> 3) % 6) * 0.45 };
+}
+
+function bookshelf(items) {
+  return el('div', { className: 'shelf' }, ...items.map((it) => {
+    const look = spineLook(it);
+    const spine = el('button', {
+      type: 'button',
+      className: `book-spine${it.hidden ? ' is-hidden' : ''}`,
+      title: [it.title, it.author].filter(Boolean).join(' — '),
+      onclick: () => openBook(it),
+    },
+    el('span', { className: 'spine-title', textContent: it.title }),
+    it.year ? el('span', { className: 'spine-year', textContent: String(it.year) }) : null);
+    spine.style.setProperty('--spine', look.colour);
+    spine.style.width = `${look.width}rem`;
+    spine.style.height = `${look.height}rem`;
+    return el('div', { className: 'book-slot' }, spine);
+  }));
+}
+
+function openBook(it) {
+  const dialog = $('#bookDialog');
+  const card = recordCard(it);
+  adminControls(card, it);
+  $('#bookDialogBody').replaceChildren(card);
+  dialog.showModal();
 }
 
 function query() {
@@ -217,7 +258,7 @@ async function moderate(it) {
   const res = await fetch(it.hidden ? `/api/${tab}/${it.id}/restore` : `/api/${tab}/${it.id}`, {
     method: it.hidden ? 'POST' : 'DELETE',
   });
-  if (res.ok) load(currentPage); else alert((await res.json()).error);
+  if (res.ok) { $('#bookDialog').close(); load(currentPage); } else alert((await res.json()).error);
 }
 
 function isDark() { return document.documentElement.dataset.theme === 'dark'; }
@@ -333,3 +374,6 @@ caseSearch.addEventListener('reset', () => setTimeout(() => load()));
   loadAccount();
   loadActive();
 })();
+
+$('#bookDialog').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }); // click outside
+$('#bookClose').addEventListener('click', () => $('#bookDialog').close());

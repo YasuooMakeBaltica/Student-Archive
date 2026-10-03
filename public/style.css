@@ -241,3 +241,41 @@ select {
 .page-btn.current { background: var(--accent); color: var(--paper); border-color: var(--accent); cursor: default; }
 .page-btn:disabled:not(.current) { opacity: 0.45; cursor: default; }
 .page-gap { color: var(--ink-soft); padding: 0 0.2rem; }
+
+/* Library bookshelf: each row of spines stands on a 1rem wooden plank. */
+:root { --plank: #6b4a2b; --plank-edge: #4f3622; }
+:root[data-theme="dark"] { --plank: #4a3420; --plank-edge: #2e2014; }
+.shelf {
+  display: flex; flex-wrap: wrap; align-content: flex-start; column-gap: 0.25rem; row-gap: 1rem;
+  padding: 0 0.8rem 1rem;
+  border: 2px solid var(--plank-edge); border-top-width: 0.5rem;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 12rem, var(--plank) 12rem 12.8rem, var(--plank-edge) 12.8rem 13rem),
+    var(--paper-dark);
+}
+.book-slot { height: 12rem; display: flex; align-items: flex-end; }
+.book-spine {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 0.7rem 0 0.5rem; cursor: pointer; overflow: hidden;
+  font: inherit; color: #f4ead6; background: var(--spine);
+  border: 2px solid #2b2016; border-radius: 2px 2px 0 0;
+  box-shadow: inset 0 0.35rem 0 -0.2rem rgba(244, 234, 214, 0.35), inset 0 -0.55rem 0 -0.4rem rgba(244, 234, 214, 0.35);
+}
+.book-spine:hover, .book-spine:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-spine.is-hidden { opacity: 0.45; border-style: dashed; }
+.spine-title {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: 0.8rem; line-height: 1.1; letter-spacing: 0.02em;
+  max-height: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.spine-year { font-size: 0.6rem; opacity: 0.8; }
+.book-dialog {
+  max-width: min(36rem, calc(100vw - 2rem)); width: 100%; padding: 1.2rem 1rem 1rem;
+  color: var(--ink); background: var(--paper); border: 2px solid var(--rule);
+}
+.book-dialog::backdrop { background: rgba(30, 22, 12, 0.55); }
+.book-dialog .entry { margin: 0; }
+.book-close {
+  position: absolute; top: 0.2rem; right: 0.4rem; font: inherit; font-size: 1.4rem; line-height: 1;
+  color: var(--ink-soft); background: none; border: none; cursor: pointer;
+}

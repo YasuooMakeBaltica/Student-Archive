@@ -333,3 +333,20 @@ select {
     inset 0 0.35rem 0 -0.2rem rgba(244, 234, 214, 0.35), inset 0 -0.55rem 0 -0.4rem rgba(244, 234, 214, 0.35);
   z-index: 1;
 }
+
+/* Sponsor strip above the footer. Images are toned to sepia to match the site. */
+.sponsor {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem 2rem;
+  max-width: 52rem; margin: 1.5rem auto 0; padding: 1.2rem 1rem; border-top: 3px double var(--rule);
+}
+.sponsor a { color: var(--ink); text-decoration: none; }
+.sponsor img { filter: sepia(0.6) saturate(0.65) contrast(0.95); display: block; }
+.sponsor-credit { display: flex; align-items: center; gap: 0.8rem; }
+.sponsor-credit img { width: 4rem; height: 4rem; border-radius: 50%; }
+.sponsor-credit small { display: block; font-style: italic; color: var(--ink-soft); font-size: 0.8rem; }
+.sponsor-credit strong { font-size: 1.1rem; letter-spacing: 0.03em; }
+.sponsor-banner { flex: 0 1 22.5rem; min-width: 0; }
+.sponsor-banner img { width: 100%; height: auto; border: 1px solid var(--rule); }
+.sponsor a:hover strong, .sponsor a:focus-visible strong { text-decoration: underline; }
+.sponsor-banner:hover img, .sponsor-banner:focus-visible img { border-color: var(--accent); }
+:root[data-theme="dark"] .sponsor img { filter: sepia(0.6) saturate(0.6) brightness(0.85); }

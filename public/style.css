@@ -282,3 +282,13 @@ select {
 
 .forum-link { color: var(--accent); font-size: 0.9rem; }
 .case-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; }
+/* Case spines carry a status band across the top. */
+.book-spine[data-status]::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 0.45rem; background: #b49f7c;
+}
+.book-spine[data-status="pending"]::before, .book-spine[data-status="in-session"]::before { background: #d9b76a; }
+.book-spine[data-status="adjourned"]::before { background: #9fb08a; }
+.book-spine[data-status="dismissed"]::before { background: #b8695a; }
+.shelf-legend[hidden] { display: none; }
+.shelf-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 0.5rem; }
+.shelf-legend span::before { content: ''; display: inline-block; width: 0.8rem; height: 0.45rem; margin-right: 0.3rem; background: var(--c); vertical-align: middle; }

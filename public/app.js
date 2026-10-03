@@ -74,7 +74,7 @@ function caseCard(it) {
     it.summary ? el('p', { className: 'excerpt', textContent: it.summary }) : null,
     ...it.laws.map((l) => el('button', {
       className: 'tag', textContent: l, type: 'button', title: 'Find cases citing this law',
-      onclick: () => { caseSearch.elements.law.value = l; load(); },
+      onclick: () => { caseSearch.elements.law.value = l; $('#bookDialog').close(); load(); },
     })),
     el('p', { className: 'case-links' },
       el('a', { className: 'open-case', href: `case.html?id=${encodeURIComponent(it.id)}`, textContent: 'Open case file →' }),
@@ -125,15 +125,7 @@ function render(items, total, page) {
     results.append(el('p', { className: 'empty', textContent: 'Nothing found in the archive.' }));
     return;
   }
-  if (tab === 'records') {
-    results.append(bookshelf(items));
-    return;
-  }
-  for (const it of items) {
-    const entry = caseCard(it);
-    adminControls(entry, it);
-    results.append(entry);
-  }
+  results.append(bookshelf(items));
 }
 
 // --- Bookshelf view for the Library Database --------------------------------
@@ -142,9 +134,16 @@ function render(items, total, page) {
 const SPINE_COLOURS = ['#6b4a2b', '#7d5a3a', '#5a4632', '#8b6b47', '#4f3b2a', '#76603f', '#64503b', '#8a5f3c'];
 
 function spineLook(it) {
-  let h = 0;
-  for (const ch of `${it.id}${it.title}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  let h = 2166136261; // FNV-1a, so similar titles still get different looks
+  for (const ch of `${it.id}${it.title}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  h = (h ^ (h >>> 15)) >>> 0;
   return { colour: SPINE_COLOURS[h % SPINE_COLOURS.length], width: 2.6 + (h % 5) * 0.2, height: 9.5 + ((h >> 3) % 6) * 0.45 };
+}
+
+// Bottom of the spine: the year for library records, the short citation (e.g. "DCR 102") for cases.
+function spineFoot(it) {
+  if (tab !== 'cases') return it.year ? String(it.year) : '';
+  return String(it.citation || '').replace(/^\[\d{4}\]\s*/, '') || (it.year ? String(it.year) : '');
 }
 
 function bookshelf(items) {
@@ -153,11 +152,12 @@ function bookshelf(items) {
     const spine = el('button', {
       type: 'button',
       className: `book-spine${it.hidden ? ' is-hidden' : ''}`,
-      title: [it.title, it.author].filter(Boolean).join(' — '),
+      title: [it.title, it.author, it.citation, it.status].filter(Boolean).join(' — '),
       onclick: () => openBook(it),
     },
     el('span', { className: 'spine-title', textContent: it.title }),
-    it.year ? el('span', { className: 'spine-year', textContent: String(it.year) }) : null);
+    spineFoot(it) ? el('span', { className: 'spine-year', textContent: spineFoot(it) }) : null);
+    if (tab === 'cases' && it.status) spine.dataset.status = it.status.toLowerCase().replace(/\s+/g, '-');
     spine.style.setProperty('--spine', look.colour);
     spine.style.width = `${look.width}rem`;
     spine.style.height = `${look.height}rem`;
@@ -167,7 +167,7 @@ function bookshelf(items) {
 
 function openBook(it) {
   const dialog = $('#bookDialog');
-  const card = recordCard(it);
+  const card = tab === 'cases' ? caseCard(it) : recordCard(it);
   adminControls(card, it);
   $('#bookDialogBody').replaceChildren(card);
   dialog.showModal();
@@ -360,6 +360,7 @@ function showTab(name) {
   document.querySelectorAll('nav button').forEach((x) => x.classList.toggle('active', x.dataset.tab === name));
   $('#recordSearch').hidden = name !== 'records';
   caseSearch.hidden = name !== 'cases';
+  $('#shelfLegend').hidden = name !== 'cases';
   $('#activeCases').hidden = name !== 'cases' || !$('#activeList').childElementCount;
   search.value = ''; tagInput.value = ''; caseSearch.reset();
   try { history.replaceState(null, '', name === 'cases' ? '#cases' : location.pathname); } catch { /* ignore */ }

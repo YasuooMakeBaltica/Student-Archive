@@ -115,8 +115,14 @@ async function loadAccount() {
       document.addEventListener('click', (e) => { if (!box.contains(e.target)) close(); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
       box.append(toggle, menu);
-    } else if (me.loginEnabled) {
-      box.append(el('a', { className: 'btn', href: '/auth/login', textContent: 'Log in with Discord' }));
+    } else {
+      const themeBtn = el('button', { className: 'btn', type: 'button' });
+      const label = () => { themeBtn.textContent = isDark() ? 'Light mode' : 'Dark mode'; };
+      themeBtn.onclick = () => { setTheme(!isDark()); label(); };
+      label();
+      box.append(el('div', { className: 'account-out' },
+        themeBtn,
+        ...(me.loginEnabled ? [el('a', { className: 'btn', href: '/auth/login', textContent: 'Log in with Discord' })] : [])));
     }
   } catch { /* leave account area empty */ }
   load();

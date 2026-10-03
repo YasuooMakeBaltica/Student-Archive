@@ -89,6 +89,7 @@ async function loadAccount() {
     const me = await (await fetch('/api/me')).json();
     admin = me.admin;
     $('#hiddenToggle').hidden = !admin;
+    $('#addBox').hidden = !admin;
     box.replaceChildren();
     if (me.loggedIn) {
       const themeItem = el('button', {

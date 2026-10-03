@@ -82,6 +82,7 @@ input, textarea {
 }
 .empty { text-align: center; color: var(--ink-soft); font-style: italic; }
 .add { margin-top: 2rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+.add[hidden] { display: none; }
 .add summary { cursor: pointer; font-weight: bold; }
 #form { display: grid; gap: 0.6rem; margin-top: 0.8rem; }
 #form label { display: grid; gap: 0.2rem; font-size: 0.9rem; color: var(--ink-soft); }

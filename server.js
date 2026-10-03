@@ -92,7 +92,7 @@ for (const kind of ['records', 'cases']) {
     res.json(items);
   }));
 
-  app.post(`/api/${kind}`, wrap(async (req, res) => {
+  app.post(`/api/${kind}`, requireAdmin, wrap(async (req, res) => {
     const item = clean(kind, req.body || {});
     if (!item) return res.status(400).json({ error: 'A title is required.' });
     const db = await loadDb();

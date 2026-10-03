@@ -79,13 +79,18 @@ async function loadAccount() {
     admin = me.admin;
     $('#hiddenToggle').hidden = !admin;
     box.replaceChildren();
-    if (admin) {
-      box.append(`Admin: ${me.name} · `, el('button', {
-        type: 'button', textContent: 'Log out',
-        onclick: async () => { await fetch('/auth/logout', { method: 'POST' }); location.reload(); },
-      }));
+    if (me.loggedIn) {
+      box.append(
+        el('span', { className: 'name', textContent: me.name }),
+        ...(admin ? [el('span', { className: 'badge', textContent: 'Admin' })] : []),
+        el('button', {
+          className: 'btn', type: 'button', textContent: 'Log out',
+          onclick: async () => { await fetch('/auth/logout', { method: 'POST' }); location.reload(); },
+        }),
+        el('img', { src: me.avatarUrl, alt: `${me.name}'s Discord avatar`, referrerPolicy: 'no-referrer' }),
+      );
     } else if (me.loginEnabled) {
-      box.append(el('a', { href: '/auth/login', textContent: 'Admin login with Discord' }));
+      box.append(el('a', { className: 'btn', href: '/auth/login', textContent: 'Log in with Discord' }));
     }
   } catch { /* leave account area empty */ }
   load();

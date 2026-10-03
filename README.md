@@ -30,9 +30,9 @@ MIT – see [LICENSE](LICENSE).
 
 Without those variables (local development) the app falls back to `data/db.json`.
 
-## Admin moderation (Discord login)
+## Discord login & admin moderation
 
-Admins can hide (soft delete) and restore entries. Hidden entries disappear from the public site but stay in the database.
+Anyone can log in with Discord (a login button sits in the top-right corner and shows their Discord avatar once signed in). Only Discord IDs listed in `ADMIN_DISCORD_IDS` get admin rights. Admins can hide (soft delete) and restore entries. Hidden entries disappear from the public site but stay in the database.
 
 1. Create an app at https://discord.com/developers/applications and add the redirect
    `https://<your-domain>/auth/callback` (and `http://localhost:3000/auth/callback` for local use) under **OAuth2**.

@@ -52,10 +52,24 @@ function setCookie(req, res, name, value, maxAgeMs) {
 const redirectUri = (req) => process.env.DISCORD_REDIRECT_URI ||
   `${isHttps(req) ? 'https' : 'http'}://${req.headers.host}/auth/callback`;
 
-/** Returns the logged-in admin ({id, name}) or null. */
-function getAdmin(req) {
+/** Returns the logged-in Discord user ({id, name, avatar}) or null. Anyone can log in. */
+function getUser(req) {
   const session = decode(cookies(req).session);
-  return session && ADMIN_IDS.includes(session.id) ? { id: session.id, name: session.name } : null;
+  return session ? { id: session.id, name: session.name, avatar: session.avatar } : null;
+}
+
+/** Returns the logged-in user only if their Discord ID is on the admin list. */
+function getAdmin(req) {
+  const user = getUser(req);
+  return user && ADMIN_IDS.includes(user.id) ? user : null;
+}
+
+function avatarUrl(user) {
+  if (user.avatar && /^[a-z0-9_]+$/i.test(user.avatar) && /^\d+$/.test(user.id)) {
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+  }
+  const index = /^\d+$/.test(user.id) ? Number((BigInt(user.id) >> 22n) % 6n) : 0;
+  return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
 }
 
 function requireAdmin(req, res, next) {
@@ -103,9 +117,13 @@ router.get('/auth/callback', async (req, res) => {
     });
     if (!userRes.ok) throw new Error(`user lookup ${userRes.status}`);
     const user = await userRes.json();
-    if (!ADMIN_IDS.includes(user.id)) return res.status(403).send('This Discord account is not an admin.');
     setCookie(req, res, 'session',
-      encode({ id: user.id, name: user.global_name || user.username, exp: Date.now() + SESSION_MS }),
+      encode({
+        id: user.id,
+        name: user.global_name || user.username,
+        avatar: user.avatar || null,
+        exp: Date.now() + SESSION_MS,
+      }),
       SESSION_MS);
     res.redirect('/');
   } catch (err) {
@@ -120,8 +138,14 @@ router.post('/auth/logout', (req, res) => {
 });
 
 router.get('/api/me', (req, res) => {
-  const admin = getAdmin(req);
-  res.json({ admin: !!admin, name: admin ? admin.name : null, loginEnabled: !!(CLIENT_ID && CLIENT_SECRET) });
+  const user = getUser(req);
+  res.json({
+    loggedIn: !!user,
+    admin: !!getAdmin(req),
+    name: user ? user.name : null,
+    avatarUrl: user ? avatarUrl(user) : null,
+    loginEnabled: !!(CLIENT_ID && CLIENT_SECRET),
+  });
 });
 
 module.exports = { router, getAdmin, requireAdmin };

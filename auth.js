@@ -79,8 +79,25 @@ function requireAdmin(req, res, next) {
 
 const router = express.Router();
 
+// The login cookie is tied to one domain, so logins started on another address
+// (e.g. a deployment-specific *.vercel.app URL) are moved to the callback's domain first.
+function canonicalOrigin() {
+  try { return process.env.DISCORD_REDIRECT_URI ? new URL(process.env.DISCORD_REDIRECT_URI).origin : null; } catch { return null; }
+}
+
+function retryPage(res, status, message) {
+  const home = canonicalOrigin() || '';
+  res.status(status).type('html').send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login problem</title><body style="font-family:Georgia,serif;background:#e9dcc3;color:#3b2f20;text-align:center;padding:3rem 1rem">
+<p>${message}</p><p><a href="${home}/auth/login" style="color:#7a5c3a">Try logging in again</a> · <a href="${home}/" style="color:#7a5c3a">Back to the archive</a></p></body>`);
+}
+
 router.get('/auth/login', (req, res) => {
   if (!CLIENT_ID || !CLIENT_SECRET) return res.status(503).send('Discord login is not configured.');
+  const canonical = canonicalOrigin();
+  if (canonical && `${isHttps(req) ? 'https' : 'http'}://${req.headers.host}` !== canonical) {
+    return res.redirect(`${canonical}/auth/login`);
+  }
   const state = crypto.randomBytes(16).toString('hex');
   setCookie(req, res, 'oauth_state', state, 10 * 60 * 1000);
   const params = new URLSearchParams({
@@ -94,9 +111,10 @@ router.get('/auth/login', (req, res) => {
 });
 
 router.get('/auth/callback', async (req, res) => {
-  const { code, state } = req.query;
+  const { code, state, error } = req.query;
+  if (error) return res.redirect(`${canonicalOrigin() || ''}/`); // cancelled on Discord's page
   if (!code || !state || state !== cookies(req).oauth_state) {
-    return res.status(400).send('Invalid login attempt. Please try again.');
+    return retryPage(res, 400, 'That login link has expired or was opened in a different browser or tab.');
   }
   try {
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
@@ -117,6 +135,7 @@ router.get('/auth/callback', async (req, res) => {
     });
     if (!userRes.ok) throw new Error(`user lookup ${userRes.status}`);
     const user = await userRes.json();
+    setCookie(req, res, 'oauth_state', '', 0);
     setCookie(req, res, 'session',
       encode({
         id: user.id,
@@ -128,7 +147,7 @@ router.get('/auth/callback', async (req, res) => {
     res.redirect('/');
   } catch (err) {
     console.error(err);
-    res.status(502).send('Discord login failed. Please try again.');
+    retryPage(res, 502, 'Discord login failed.');
   }
 });
 

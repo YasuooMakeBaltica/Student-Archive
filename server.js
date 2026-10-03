@@ -23,8 +23,15 @@ if (REDIS_URL && REDIS_TOKEN) {
   redis = new Redis({ url: REDIS_URL, token: REDIS_TOKEN });
 }
 
+// Without Redis on a read-only host (e.g. Vercel with no database connected) the
+// archive is served from memory so it can still be browsed; saving changes fails.
+let memoryDb = null;
+
+class StorageUnavailable extends Error {}
+
 async function readDb() {
   if (redis) return (await redis.get(DB_KEY)) || null;
+  if (memoryDb) return structuredClone(memoryDb); // callers mutate; failed saves must not stick
   return fs.existsSync(DB_FILE) ? JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) : null;
 }
 
@@ -32,9 +39,9 @@ async function loadDb() {
   let db = await readDb();
   if (!db) {
     db = seed();
-    await saveDb(db);
+    await saveDb(db, { required: false });
   } else if (migrate(db)) {
-    await saveDb(db);
+    await saveDb(db, { required: false });
   }
   return db;
 }
@@ -59,9 +66,15 @@ function migrate(db) {
   return true;
 }
 
-async function saveDb(db) {
+async function saveDb(db, { required = true } = {}) {
   if (redis) return redis.set(DB_KEY, db);
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  } catch (err) {
+    if (required) throw new StorageUnavailable(err.message);
+    console.warn(`Could not write ${DB_FILE} (${err.code}); serving the archive from memory.`);
+    memoryDb = structuredClone(db);
+  }
 }
 
 const RECORD_FIELDS = ['title', 'author', 'type', 'year', 'tags', 'summary'];
@@ -155,6 +168,9 @@ const KINDS = {
 
 const wrap = (fn) => (req, res) => fn(req, res).catch((err) => {
   console.error(err);
+  if (err instanceof StorageUnavailable) {
+    return res.status(503).json({ error: 'Saving is not set up on this server: connect an Upstash Redis database.' });
+  }
   res.status(500).json({ error: 'Storage error.' });
 });
 

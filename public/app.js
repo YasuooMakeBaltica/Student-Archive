@@ -99,10 +99,13 @@ async function load() {
   const seq = ++loadSeq;
   try {
     const res = await fetch(`/api/${tab}?${query()}`);
-    const items = await res.json();
-    if (seq === loadSeq) render(items); // ignore responses that arrive out of order
-  } catch {
-    results.replaceChildren(el('p', { className: 'empty', textContent: 'Could not reach the archive.' }));
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !Array.isArray(data)) throw new Error((data && data.error) || `Server error (${res.status})`);
+    if (seq === loadSeq) render(data); // ignore responses that arrive out of order
+  } catch (err) {
+    if (seq !== loadSeq) return;
+    if (tab === 'cases') $('#caseCount').textContent = '';
+    results.replaceChildren(el('p', { className: 'empty', textContent: `Could not load the archive: ${err.message}` }));
   }
 }
 

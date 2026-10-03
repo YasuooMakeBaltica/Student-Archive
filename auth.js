@@ -98,8 +98,9 @@ router.get('/auth/login', (req, res) => {
   if (canonical && `${isHttps(req) ? 'https' : 'http'}://${req.headers.host}` !== canonical) {
     return res.redirect(`${canonical}/auth/login`);
   }
-  const state = crypto.randomBytes(16).toString('hex');
-  setCookie(req, res, 'oauth_state', state, 10 * 60 * 1000);
+  // The state is signed rather than stored in a cookie: on phones the Discord app often
+  // hands the login back to a different browser, which would not have that cookie.
+  const state = encode({ nonce: crypto.randomBytes(12).toString('hex'), exp: Date.now() + 10 * 60 * 1000 });
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: redirectUri(req),
@@ -113,8 +114,8 @@ router.get('/auth/login', (req, res) => {
 router.get('/auth/callback', async (req, res) => {
   const { code, state, error } = req.query;
   if (error) return res.redirect(`${canonicalOrigin() || ''}/`); // cancelled on Discord's page
-  if (!code || !state || state !== cookies(req).oauth_state) {
-    return retryPage(res, 400, 'That login link has expired or was opened in a different browser or tab.');
+  if (!code || !decode(String(state || ''))) {
+    return retryPage(res, 400, 'That login link has expired. Please start the login again.');
   }
   try {
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
@@ -135,7 +136,6 @@ router.get('/auth/callback', async (req, res) => {
     });
     if (!userRes.ok) throw new Error(`user lookup ${userRes.status}`);
     const user = await userRes.json();
-    setCookie(req, res, 'oauth_state', '', 0);
     setCookie(req, res, 'session',
       encode({
         id: user.id,

@@ -72,6 +72,14 @@ async function moderate(it) {
   if (res.ok) load(); else alert((await res.json()).error);
 }
 
+function isDark() { return document.documentElement.dataset.theme === 'dark'; }
+
+function setTheme(dark) {
+  if (dark) document.documentElement.dataset.theme = 'dark';
+  else delete document.documentElement.dataset.theme;
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch { /* storage unavailable */ }
+}
+
 async function loadAccount() {
   const box = $('#account');
   try {
@@ -80,10 +88,16 @@ async function loadAccount() {
     $('#hiddenToggle').hidden = !admin;
     box.replaceChildren();
     if (me.loggedIn) {
+      const themeItem = el('button', {
+        className: 'menu-item', type: 'button',
+        onclick: () => { setTheme(!isDark()); themeItem.textContent = isDark() ? 'Light mode' : 'Dark mode'; },
+      });
+      themeItem.textContent = isDark() ? 'Light mode' : 'Dark mode';
       const menu = el('div', { className: 'menu', hidden: true },
         el('div', { className: 'menu-user' },
           el('span', { className: 'name', textContent: me.name }),
           ...(admin ? [el('span', { className: 'badge', textContent: 'Admin' })] : [])),
+        themeItem,
         el('button', {
           className: 'menu-item', type: 'button', textContent: 'Log out',
           onclick: async () => { await fetch('/auth/logout', { method: 'POST' }); location.reload(); },

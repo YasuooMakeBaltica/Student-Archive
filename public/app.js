@@ -434,3 +434,50 @@ caseSearch.addEventListener('reset', () => setTimeout(() => load()));
 
 $('#bookDialog').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }); // click outside
 $('#bookClose').addEventListener('click', () => $('#bookDialog').close());
+
+// --- Support the Archive: build the in-game commands as people type --------
+const donateAmount = $('#donateAmount');
+const mailMessage = $('#mailMessage');
+
+function updateDonate() {
+  const n = Number(donateAmount.value);
+  const ok = donateAmount.value !== '' && Number.isFinite(n) && n > 0;
+  $('#donateCommand').textContent = `/pay into ARA ${ok ? +n.toFixed(2) : '<amount>'}`;
+  $('#donateCommand').closest('.command-line').classList.toggle('ready', ok);
+  document.querySelectorAll('.amount-picks button').forEach((b) => b.setAttribute('aria-pressed', String(ok && +b.dataset.amount === n)));
+}
+
+function updateMail() {
+  const text = mailMessage.value.replace(/\s+/g, ' ').trim();
+  $('#mailCommand').textContent = `/mail send .SteelBirch6844 ${text || '<message>'}`;
+  $('#mailCommand').closest('.command-line').classList.toggle('ready', !!text);
+  $('#mailCount').textContent = mailMessage.value.length;
+}
+
+document.querySelectorAll('.amount-picks button').forEach((b) => b.addEventListener('click', () => {
+  donateAmount.value = b.dataset.amount;
+  updateDonate();
+}));
+donateAmount.addEventListener('input', updateDonate);
+mailMessage.addEventListener('input', updateMail);
+
+document.querySelectorAll('.copy-btn').forEach((btn) => btn.addEventListener('click', async () => {
+  const code = document.getElementById(btn.dataset.copy);
+  const text = code.textContent;
+  if (text.includes('<')) { // nothing filled in yet
+    (btn.dataset.copy === 'donateCommand' ? donateAmount : mailMessage).focus();
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch { // older browsers / insecure contexts: select the text so it can be copied by hand
+    const range = document.createRange();
+    range.selectNodeContents(code);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    document.execCommand('copy');
+  }
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+}));

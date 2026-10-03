@@ -92,6 +92,40 @@
     <div id="bookDialogBody"></div>
   </dialog>
 
+  <section class="support" id="support" aria-labelledby="supportTitle">
+    <h2 id="supportTitle">Support the Archive</h2>
+    <div class="support-grid">
+      <div class="support-box donate-box">
+        <h3>Donate</h3>
+        <p>Donations are made in-game with Democracy Craft money, paid into <strong>ARA</strong>.</p>
+        <div class="amount-picks" role="group" aria-label="Quick amounts">
+          <button type="button" data-amount="500">$500</button>
+          <button type="button" data-amount="1000">$1,000</button>
+          <button type="button" data-amount="5000">$5,000</button>
+          <button type="button" data-amount="10000">$10,000</button>
+        </div>
+        <label>Amount <input type="number" id="donateAmount" min="1" step="any" inputmode="decimal" placeholder="Enter an amount"></label>
+        <div class="command-line">
+          <code id="donateCommand">/pay into ARA &lt;amount&gt;</code>
+          <button type="button" class="copy-btn" data-copy="donateCommand">Copy</button>
+        </div>
+        <p class="support-hint">Paste this into Minecraft chat on Democracy Craft.</p>
+      </div>
+
+      <div class="support-box mail-box">
+        <span class="stamp" aria-hidden="true">PostBox<br>C612</span>
+        <h3>Community Dropbox</h3>
+        <p>Suggestions, submissions or questions? Write a letter. It goes to <strong>.SteelBirch6844</strong> by in-game mail, or drop it off at <strong>PostBox-C612</strong>.</p>
+        <label>Your letter <textarea id="mailMessage" rows="3" maxlength="220" placeholder="Write your message…"></textarea></label>
+        <div class="command-line">
+          <code id="mailCommand">/mail send .SteelBirch6844 &lt;message&gt;</code>
+          <button type="button" class="copy-btn" data-copy="mailCommand">Copy</button>
+        </div>
+        <p class="support-hint"><span id="mailCount">0</span> / 220 characters · Paste into Minecraft chat.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="sponsor" aria-label="Sponsor">
     <a class="sponsor-credit" href="https://discord.gg/TuFKDP9Ez" target="_blank" rel="noopener noreferrer">
       <img src="img/legacy-foundation-emblem.png" alt="" width="64" height="64">

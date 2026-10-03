@@ -350,3 +350,53 @@ select {
 .sponsor a:hover strong, .sponsor a:focus-visible strong { text-decoration: underline; }
 .sponsor-banner:hover img, .sponsor-banner:focus-visible img { border-color: var(--accent); }
 :root[data-theme="dark"] .sponsor img { filter: sepia(0.6) saturate(0.6) brightness(0.85); }
+
+/* Support the Archive: donate + community dropbox */
+.support { max-width: 52rem; margin: 2rem auto 0; padding: 0 1rem; }
+.support h2 { text-align: center; font-size: 1.3rem; margin: 0 0 1rem; letter-spacing: 0.04em; }
+.support-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; }
+.support-box {
+  position: relative; display: grid; gap: 0.6rem; align-content: start;
+  padding: 1rem 1.1rem 0.9rem; background: var(--card); border: 1px solid var(--rule);
+  box-shadow: 3px 3px 0 var(--rule);
+}
+.support-box h3 { margin: 0; font-size: 1.15rem; }
+.support-box p { margin: 0; }
+.support-box label { display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--ink-soft); }
+.support-box textarea { resize: vertical; font: inherit; }
+.support-hint { font-size: 0.8rem; color: var(--ink-soft); font-style: italic; }
+.amount-picks { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.amount-picks button {
+  font: inherit; font-size: 0.85rem; cursor: pointer; padding: 0.25rem 0.7rem;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 999px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.amount-picks button:hover { border-color: var(--accent); }
+.amount-picks button[aria-pressed="true"] { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+.command-line {
+  display: flex; align-items: stretch; border: 1px dashed var(--rule); background: var(--field);
+  transition: border-color 150ms ease;
+}
+.command-line.ready { border-style: solid; border-color: var(--accent); }
+.command-line code {
+  flex: 1; min-width: 0; padding: 0.45rem 0.6rem; font-size: 0.85rem; color: var(--ink);
+  font-family: ui-monospace, "Courier New", monospace; overflow-wrap: anywhere;
+}
+.command-line:not(.ready) code { color: var(--ink-soft); }
+.copy-btn {
+  flex: none; font: inherit; font-size: 0.85rem; cursor: pointer; padding: 0 0.9rem;
+  color: var(--paper); background: var(--accent); border: none;
+}
+.copy-btn.copied { background: #6f8a5a; }
+.mail-box {
+  background:
+    repeating-linear-gradient(135deg, #8a3b2a 0 0.6rem, transparent 0.6rem 1.2rem, #3f5a7a 1.2rem 1.8rem, transparent 1.8rem 2.4rem) top / 100% 0.35rem no-repeat,
+    var(--card);
+  padding-top: 1.3rem;
+}
+.stamp {
+  position: absolute; top: 0.9rem; right: 0.9rem; transform: rotate(4deg);
+  font-size: 0.6rem; line-height: 1.15; text-align: center; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--accent); border: 2px dashed var(--accent); padding: 0.3rem 0.4rem; background: var(--paper);
+}
+.mail-box h3 { padding-right: 4.5rem; }

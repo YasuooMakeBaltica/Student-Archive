@@ -145,7 +145,9 @@ async function loadSyncStatus() {
   if (panel.hidden) return;
   try {
     const s = await (await fetch('/api/sync')).json();
-    const parts = [s.enabled ? `Forum sync on · ${s.imported} cases imported` : 'Forum sync is off (set SYNC_ENABLED=true)'];
+    const courts = Object.entries(s.byCourt || {}).map(([c, n]) => `${c.replace(' Court', '')} ${n}`).join(', ');
+    const parts = [s.enabled ? `Forum sync on · ${s.imported} cases imported${courts ? ` (${courts})` : ''}` : 'Forum sync is off (set SYNC_ENABLED=true)'];
+    if (s.listings) parts.push(`${Object.keys(s.listings).length} forum sections`);
     if (s.lastRun) parts.push(`last run ${ago(s.lastRun.at)}`);
     if (s.enabled && !s.backfillDone) parts.push('first full import still in progress');
     if (s.lastRun && s.lastRun.errors && s.lastRun.errors.length) parts.push(`errors: ${s.lastRun.errors.join('; ')}`);

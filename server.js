@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { router: authRouter, getAdmin, requireAdmin } = require('./auth');
-const { runSync } = require('./sync');
+const { runSync, inspect } = require('./sync');
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
@@ -258,7 +258,7 @@ async function syncBatch() {
       await saveDb(fresh);
     },
   });
-  return { ...result, backfillDone: !!state.backfillDone, courts: state.courts };
+  return { ...result, backfillDone: !!state.backfillDone, listings: state.listings };
 }
 
 // Daily Vercel cron job. Vercel sends "Authorization: Bearer <CRON_SECRET>".
@@ -277,11 +277,25 @@ app.post('/api/sync', requireAdmin, wrap(async (req, res) => {
 
 app.get('/api/sync', requireAdmin, wrap(async (req, res) => {
   const db = await loadDb();
+  const forum = await getForumCases();
+  const byCourt = {};
+  for (const c of forum) byCourt[c.court] = (byCourt[c.court] || 0) + 1;
   res.json({
     enabled: process.env.SYNC_ENABLED === 'true',
-    imported: (await getForumCases()).length,
+    imported: forum.length,
+    byCourt,
     ...(db.sync || {}),
   });
+}));
+
+// Diagnostics: fetch page 1 of a court forum and show what the parser made of it.
+app.get('/api/sync/inspect', requireAdmin, wrap(async (req, res) => {
+  if (process.env.SYNC_ENABLED !== 'true') return res.status(503).json({ error: SYNC_OFF });
+  try {
+    res.json(await inspect(String(req.query.court || 'district')));
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
 }));
 
 // --- Entries ---------------------------------------------------------------

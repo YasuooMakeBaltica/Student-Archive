@@ -47,20 +47,23 @@ function parseTitle(title, prefix, court) {
   };
 }
 
-/** Parses one XenForo forum listing page. */
-function parseListing(html, court) {
+/** Parses one XenForo forum listing page (its case threads, page count and sub-forums). */
+function parseListing(html, court, listingPath = court.path) {
   const $ = cheerio.load(html);
   const cases = [];
+  const skipped = [];
+  let threads = 0;
   $('.structItem--thread').each((_, el) => {
+    threads += 1;
     const item = $(el);
     const titleBox = item.find('.structItem-title').first();
     let link = titleBox.find('a[data-tp-primary="on"]').first();
     if (!link.length) link = titleBox.find('a').not('.labelLink').last();
     const href = link.attr('href') || '';
     const threadId = (href.match(/\.(\d+)\/?(?:$|[?#])/) || href.match(/\/(\d+)\/?$/) || [])[1];
-    if (!threadId) return;
-    const parsed = parseTitle(link.text().trim(), titleBox.find('.label').first().text().trim(), court);
-    if (!parsed) return;
+    const title = link.text().trim();
+    const parsed = threadId && parseTitle(title, titleBox.find('.label').first().text().trim(), court);
+    if (!parsed) { skipped.push(title); return; }
     const latest = item.find('.structItem-latestDate').attr('data-time')
       || item.find('.structItem-cell--latest time').attr('data-time');
     const started = item.find('.structItem-startDate time').attr('data-time');
@@ -74,74 +77,125 @@ function parseListing(html, court) {
       activityAt: latest ? +latest * 1000 : null,
     });
   });
-  const pages = $('.pageNav-main a').map((_, a) => parseInt($(a).text(), 10)).get().filter(Number.isInteger);
-  return { cases, lastPage: pages.length ? Math.max(...pages) : 1 };
+
+  // Page count: the pager's numbers, or any link to ".../page-N" of this listing.
+  const pages = $('.pageNav-main a').map((_, a) => parseInt($(a).text(), 10)).get();
+  $('a[href*="page-"]').each((_, a) => {
+    const href = $(a).attr('href') || '';
+    const m = href.match(/\/page-(\d+)/);
+    if (m && href.includes(listingPath.replace(/\/$/, ''))) pages.push(+m[1]);
+  });
+  const known = pages.filter(Number.isInteger);
+  const lastPage = known.length ? Math.max(...known) : null; // null = no pager found
+
+  // Sub-forums (e.g. archives of closed cases) listed on the forum page.
+  const subforums = new Set();
+  $('.node-title a, .subNodeLink').each((_, a) => {
+    const href = ($(a).attr('href') || '').replace(/^https?:\/\/[^/]+/, '');
+    if (/^\/forums\/[^/?#]+\/?$/.test(href) && href !== listingPath) subforums.add(href.endsWith('/') ? href : `${href}/`);
+  });
+
+  return { cases, threads, skipped, lastPage, subforums: [...subforums] };
 }
 
-async function fetchPage(court, page) {
-  const url = new URL(page > 1 ? `${court.path}page-${page}` : court.path, FORUM_BASE).href;
+async function fetchListing(court, path, page) {
+  const url = new URL(page > 1 ? `${path}page-${page}` : path, FORUM_BASE).href;
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: 'text/html' } });
   if (!res.ok) throw new Error(`${url} returned HTTP ${res.status}`);
   // XenForo redirects pages past the end back to the last page.
-  if (page > 1 && !res.url.includes(`page-${page}`)) return { cases: [], lastPage: page - 1 };
-  return parseListing(await res.text(), court);
+  if (page > 1 && !res.url.includes(`page-${page}`)) {
+    return { cases: [], threads: 0, skipped: [], lastPage: page - 1, subforums: [], pastEnd: true, url };
+  }
+  return { ...parseListing(await res.text(), court, path), url: res.url };
+}
+
+/** Fetches page 1 of one court forum and reports what the parser saw (admin diagnostics). */
+async function inspect(courtKey) {
+  const court = COURTS.find((c) => c.key === courtKey) || COURTS[0];
+  const r = await fetchListing(court, court.path, 1);
+  return {
+    court: court.name, url: r.url, threadsOnPage: r.threads, casesParsed: r.cases.length,
+    lastPage: r.lastPage, subforums: r.subforums,
+    sampleCases: r.cases.slice(0, 5).map((c) => `${c.citation} ${c.status} ${c.title}`),
+    skippedTitles: r.skipped.slice(0, 10),
+  };
 }
 
 /**
- * Runs one sync batch within `budgetMs`. Re-reads the newest pages of each court, then
- * continues the one-time backfill of older pages where the previous run stopped.
- * Progress is saved after every page, so a run cut off by the host loses nothing.
+ * Runs one sync batch within `budgetMs`. Each court forum and any sub-forums found inside it
+ * (archives of closed cases, for example) is a "listing". Every run re-reads the newest pages
+ * of each listing, then continues the one-time backfill of older pages where the last run
+ * stopped. Progress is saved after every page, so a run cut off by the host loses nothing.
  */
 async function runSync({ state, saveState, upsert, budgetMs = 45000 }) {
   const deadline = Date.now() + budgetMs;
   const timeLeft = () => Date.now() < deadline - 5000;
-  state.courts = state.courts || {};
   const summary = { pages: 0, cases: 0, errors: [] };
+  if (!state.listings) { // first run, or state from the older single-listing version
+    state.listings = {};
+    delete state.courts;
+  }
+  for (const court of COURTS) {
+    if (!state.listings[court.path]) state.listings[court.path] = { court: court.key, nextPage: 1, done: false };
+  }
   let first = true;
 
-  async function readPage(court, page) {
+  async function read(path, page) {
+    const listing = state.listings[path];
+    const court = COURTS.find((c) => c.key === listing.court);
     if (!first) await sleep(REQUEST_GAP_MS);
     first = false;
-    const result = await fetchPage(court, page);
+    const result = await fetchListing(court, path, page);
     summary.pages += 1;
     summary.cases += result.cases.length;
     if (result.cases.length) await upsert(result.cases);
+    if (result.lastPage) listing.lastPage = Math.max(listing.lastPage || 0, result.lastPage);
+    for (const sub of result.subforums) {
+      if (!state.listings[sub]) state.listings[sub] = { court: listing.court, nextPage: 1, done: false, parent: path };
+    }
     return result;
   }
 
-  for (const court of COURTS) {
-    const cs = (state.courts[court.key] = state.courts[court.key] || { nextPage: RECENT_PAGES + 1, done: false });
+  // 1. Newest pages of every listing: new cases and status changes.
+  for (const path of Object.keys(state.listings)) {
+    const listing = state.listings[path];
     try {
       for (let page = 1; page <= RECENT_PAGES && timeLeft(); page += 1) {
-        const { lastPage } = await readPage(court, page);
-        cs.lastPage = lastPage;
-        if (page >= lastPage) break;
+        const r = await read(path, page);
+        if (r.pastEnd || !r.threads || (listing.lastPage && page >= listing.lastPage)) break;
       }
+      if (listing.nextPage <= RECENT_PAGES) listing.nextPage = RECENT_PAGES + 1;
     } catch (err) {
-      summary.errors.push(`${court.name}: ${err.message}`);
+      summary.errors.push(`${path}: ${err.message}`);
     }
   }
+  await saveState(state);
 
-  for (const court of COURTS) {
-    const cs = state.courts[court.key];
-    while (!cs.done && timeLeft()) {
-      if (cs.lastPage && cs.nextPage > cs.lastPage) { cs.done = true; break; }
-      try {
-        const { cases, lastPage } = await readPage(court, cs.nextPage);
-        cs.lastPage = Math.max(cs.lastPage || 0, lastPage);
-        if (!cases.length) cs.done = true; else cs.nextPage += 1;
-      } catch (err) {
-        summary.errors.push(`${court.name} page ${cs.nextPage}: ${err.message}`);
-        break;
+  // 2. Backfill older pages, listing by listing (new sub-forums join as they are found).
+  for (let progressed = true; progressed && timeLeft();) {
+    progressed = false;
+    for (const path of Object.keys(state.listings)) {
+      const listing = state.listings[path];
+      while (!listing.done && timeLeft()) {
+        if (listing.lastPage && listing.nextPage > listing.lastPage) { listing.done = true; break; }
+        try {
+          const r = await read(path, listing.nextPage);
+          // An empty or past-the-end page means we have reached the oldest threads.
+          if (r.pastEnd || !r.threads) listing.done = true; else listing.nextPage += 1;
+          progressed = true;
+        } catch (err) {
+          summary.errors.push(`${path} page ${listing.nextPage}: ${err.message}`);
+          break;
+        }
+        await saveState(state);
       }
-      await saveState(state);
     }
   }
 
   state.lastRun = { at: Date.now(), ...summary };
-  state.backfillDone = COURTS.every((c) => state.courts[c.key] && state.courts[c.key].done);
+  state.backfillDone = Object.values(state.listings).every((l) => l.done);
   await saveState(state);
   return state.lastRun;
 }
 
-module.exports = { runSync, parseListing, parseTitle, COURTS };
+module.exports = { runSync, parseListing, parseTitle, inspect, COURTS };

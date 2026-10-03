@@ -7,14 +7,15 @@ const { router: authRouter, getAdmin, requireAdmin } = require('./auth');
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
-const SEED_FILE = path.join(DATA_DIR, 'seed.json');
 
 // Storage: Upstash Redis (Vercel Marketplace "KV") when its env vars are set,
 // otherwise a local JSON file for development.
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const DB_KEY = 'student-archive-db';
-const seed = () => JSON.parse(fs.readFileSync(SEED_FILE, 'utf8'));
+// Required (not read at runtime) so Vercel bundles the seed data with the function.
+const SEED = require('./data/seed.json');
+const seed = () => structuredClone(SEED);
 
 let redis = null;
 if (REDIS_URL && REDIS_TOKEN) {
@@ -30,7 +31,7 @@ async function loadDb() {
     await redis.set(DB_KEY, fresh);
     return fresh;
   }
-  if (!fs.existsSync(DB_FILE)) fs.copyFileSync(SEED_FILE, DB_FILE);
+  if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, JSON.stringify(seed(), null, 2));
   return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
 }
 

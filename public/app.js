@@ -80,15 +80,24 @@ async function loadAccount() {
     $('#hiddenToggle').hidden = !admin;
     box.replaceChildren();
     if (me.loggedIn) {
-      box.append(
-        el('span', { className: 'name', textContent: me.name }),
-        ...(admin ? [el('span', { className: 'badge', textContent: 'Admin' })] : []),
+      const menu = el('div', { className: 'menu', hidden: true },
+        el('div', { className: 'menu-user' },
+          el('span', { className: 'name', textContent: me.name }),
+          ...(admin ? [el('span', { className: 'badge', textContent: 'Admin' })] : [])),
         el('button', {
-          className: 'btn', type: 'button', textContent: 'Log out',
+          className: 'menu-item', type: 'button', textContent: 'Log out',
           onclick: async () => { await fetch('/auth/logout', { method: 'POST' }); location.reload(); },
-        }),
-        el('img', { src: me.avatarUrl, alt: `${me.name}'s Discord avatar`, referrerPolicy: 'no-referrer' }),
-      );
+        }));
+      const toggle = el('button', {
+        className: 'avatar-btn', type: 'button', title: 'Account menu',
+        onclick: (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; toggle.setAttribute('aria-expanded', String(!menu.hidden)); },
+      }, el('img', { src: me.avatarUrl, alt: `${me.name}'s Discord avatar`, referrerPolicy: 'no-referrer' }));
+      toggle.setAttribute('aria-haspopup', 'true');
+      toggle.setAttribute('aria-expanded', 'false');
+      const close = () => { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+      document.addEventListener('click', (e) => { if (!box.contains(e.target)) close(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+      box.append(toggle, menu);
     } else if (me.loginEnabled) {
       box.append(el('a', { className: 'btn', href: '/auth/login', textContent: 'Log in with Discord' }));
     }

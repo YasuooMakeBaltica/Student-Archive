@@ -84,27 +84,38 @@ footer { text-align: center; padding: 1.5rem; color: var(--ink-soft); font-size:
   position: absolute;
   top: 0.8rem;
   right: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
   font-size: 0.9rem;
   color: var(--ink);
 }
 #account .btn {
   font: inherit; font-size: 0.85rem; color: var(--ink); background: var(--paper);
   border: 1px solid var(--rule); padding: 0.3rem 0.8rem; cursor: pointer;
-  text-decoration: none;
+  text-decoration: none; display: inline-block;
 }
-#account .name { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar-btn { background: none; border: none; padding: 0; cursor: pointer; display: block; }
+.avatar-btn img { width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 2px solid var(--rule); display: block; }
+.avatar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 50%; }
+#account .menu {
+  position: absolute; right: 0; top: calc(100% + 0.4rem); z-index: 10;
+  min-width: 11rem; text-align: left;
+  background: var(--paper); border: 1px solid var(--rule); box-shadow: 2px 2px 0 var(--rule);
+}
+#account .menu[hidden] { display: none; }
+.menu-user {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--rule);
+}
+.menu-user .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9rem; }
 #account .badge {
   font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase;
   color: var(--paper); background: var(--accent); padding: 0 0.4rem;
 }
-#account img { width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 2px solid var(--rule); display: block; }
-@media (max-width: 34rem) {
-  #account .name { display: none; }
-  header { padding-top: 3.5rem; }
+.menu-item {
+  display: block; width: 100%; text-align: left; font: inherit; color: var(--ink);
+  background: none; border: none; padding: 0.55rem 0.8rem; cursor: pointer;
 }
+.menu-item:hover, .menu-item:focus-visible { background: var(--paper-dark); }
+@media (max-width: 34rem) { header { padding-top: 3.5rem; } }
 #hiddenToggle { display: block; margin-bottom: 1rem; font-size: 0.9rem; color: var(--ink-soft); }
 .entry.is-hidden { opacity: 0.6; border-style: dashed; }
 .admin-btn {

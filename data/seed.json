@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "records": [
     {
       "id": 1,
@@ -6,7 +7,10 @@
       "author": "Constitutional Convention",
       "type": "Primary Source",
       "year": 2023,
-      "tags": ["government", "constitution"],
+      "tags": [
+        "government",
+        "constitution"
+      ],
       "summary": "The original charter establishing the branches of government and the rights of citizens."
     },
     {
@@ -15,7 +19,10 @@
       "author": "Dept. of Civic Studies",
       "type": "Research Paper",
       "year": 2024,
-      "tags": ["elections", "statistics"],
+      "tags": [
+        "elections",
+        "statistics"
+      ],
       "summary": "Analyses participation rates across the first several general elections."
     },
     {
@@ -24,37 +31,108 @@
       "author": "Speaker's Office",
       "type": "Textbook",
       "year": 2024,
-      "tags": ["legislature", "education"],
+      "tags": [
+        "legislature",
+        "education"
+      ],
       "summary": "A student guide to motions, readings, and voting in the legislature."
     }
   ],
   "cases": [
     {
       "id": 1,
-      "title": "The Great Tax Reform Dispute",
-      "category": "Economics",
-      "year": 2024,
-      "tags": ["tax", "legislature"],
-      "summary": "A disagreement over a proposed flat tax and how it was resolved in committee.",
-      "outcome": "Compromise bill passed with a tiered rate."
+      "plaintiff": "Commonwealth of Redmont",
+      "defendant": "ExampleCitizen",
+      "citation": "[2026] DCR 1",
+      "court": "District Court",
+      "caseType": "Criminal",
+      "status": "Adjourned",
+      "year": 2026,
+      "laws": [
+        "Criminal Code Act"
+      ],
+      "summary": "The Department of Justice charged the defendant with theft after diamonds went missing from a locked shop chest in the Redmont market district. The shop owner reported the loss the same evening.",
+      "arguments": "Prosecution: block-interaction logs placed the defendant at the chest minutes before the items disappeared, and a witness saw them leaving the shop. Defence: the defendant claimed the shop owner had agreed to a sale in private messages, so the items were not taken unlawfully, but could not produce the messages.",
+      "verdict": "Guilty. The court found the logs and witness testimony credible and the claimed sale unsupported. The defendant was ordered to return the items' value to the shop owner and pay a fine.",
+      "link": "",
+      "example": true,
+      "title": "Commonwealth of Redmont v. ExampleCitizen"
     },
     {
       "id": 2,
-      "title": "Land Claim Boundary Ruling",
-      "category": "Law",
-      "year": 2024,
-      "tags": ["courts", "property"],
-      "summary": "Two citizens contested the borders of adjacent plots; the court set a precedent for survey records.",
-      "outcome": "Ruling for the earlier registered claim."
+      "plaintiff": "Example Builders LLC",
+      "defendant": "ExampleClient",
+      "citation": "[2026] DCR 2",
+      "court": "District Court",
+      "caseType": "Civil",
+      "status": "Adjourned",
+      "year": 2026,
+      "laws": [
+        "Redmont Civil Code Act"
+      ],
+      "summary": "A construction company sued a client who refused to pay the final instalment for a completed mansion build, arguing the work did not match the agreed design.",
+      "arguments": "Plaintiff: submitted the signed contract, the approved design screenshots and photos of the finished build. Defendant: argued the roof material differed from the design and that this justified withholding payment.",
+      "verdict": "For the plaintiff. The difference was minor and did not amount to a material breach. The defendant was ordered to pay the outstanding instalment, reduced slightly to account for the roof material.",
+      "link": "",
+      "example": true,
+      "title": "Example Builders LLC v. ExampleClient"
     },
     {
       "id": 3,
-      "title": "Emergency Powers During a Server Outage",
-      "category": "Government",
-      "year": 2025,
-      "tags": ["executive", "constitution"],
-      "summary": "Examines limits of executive authority when the legislature could not convene.",
-      "outcome": "Powers were reviewed and limited by amendment."
+      "plaintiff": "ExampleCandidate",
+      "defendant": "Commonwealth of Redmont",
+      "citation": "[2026] FCR 1",
+      "court": "Federal Court",
+      "caseType": "Constitutional",
+      "status": "Adjourned",
+      "year": 2026,
+      "laws": [
+        "Constitution"
+      ],
+      "summary": "A congressional candidate challenged a new act banning all campaign signs within 50 blocks of the capitol, arguing it restricted free political expression protected by the Constitution.",
+      "arguments": "Plaintiff: the ban covered most of the city's public space and left no reasonable way to campaign there. Commonwealth: the act kept the capitol area clear and applied equally to every candidate.",
+      "verdict": "Partly unconstitutional. The court upheld a ban on signs directly around the capitol building but struck down the 50-block radius as broader than necessary.",
+      "link": "",
+      "example": true,
+      "title": "ExampleCandidate v. Commonwealth of Redmont"
+    },
+    {
+      "id": 4,
+      "plaintiff": "ExampleLandowner",
+      "defendant": "ExampleNeighbour",
+      "citation": "[2026] DCR 3",
+      "court": "District Court",
+      "caseType": "Civil",
+      "status": "Dismissed",
+      "year": 2026,
+      "laws": [
+        "Redmont Civil Code Act"
+      ],
+      "summary": "A landowner claimed their neighbour's new garden extended three blocks onto their plot and sought removal of the build plus compensation.",
+      "arguments": "Plaintiff: relied on their own measurements and screenshots of the plot before the garden was built. Defendant: pointed out the plaintiff had never registered an updated survey of the plot.",
+      "verdict": "Dismissed. Without an official plot record the court could not establish where the boundary lay. The plaintiff may refile after obtaining a survey.",
+      "link": "",
+      "example": true,
+      "title": "ExampleLandowner v. ExampleNeighbour"
+    },
+    {
+      "id": 5,
+      "plaintiff": "In re [2026] FCR 1",
+      "defendant": "",
+      "citation": "[2026] SCR 1",
+      "court": "Supreme Court",
+      "caseType": "Appeal",
+      "status": "Pending",
+      "year": 2026,
+      "laws": [
+        "Constitution"
+      ],
+      "summary": "The Commonwealth appealed the Federal Court's ruling in [2026] FCR 1, which struck down part of the campaign sign ban.",
+      "arguments": "Commonwealth: the lower court failed to give enough weight to Congress's judgement about public order. Respondent: the lower court applied the correct test and its ruling should stand.",
+      "verdict": "",
+      "link": "",
+      "example": true,
+      "title": "In re [2026] FCR 1"
     }
   ]
 }

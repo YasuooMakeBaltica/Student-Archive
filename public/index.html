@@ -38,10 +38,26 @@
   </header>
 
   <main>
-    <section class="controls">
+    <section class="controls" id="recordSearch">
       <input id="search" type="search" placeholder="Search the archive…">
       <input id="tag" type="text" placeholder="Filter by tag">
     </section>
+
+    <form class="case-search" id="caseSearch" hidden>
+      <label class="wide">Keywords <input name="q" type="search" placeholder="Facts, arguments, verdict…"></label>
+      <label>Parties <input name="parties" placeholder="Plaintiff or defendant"></label>
+      <label>Citation <input name="citation" placeholder="e.g. [2026] DCR 1"></label>
+      <label>Law cited <input name="law" placeholder="e.g. Criminal Code Act"></label>
+      <label>Court <select name="court"><option value="">Any court</option></select></label>
+      <label>Case type <select name="caseType"><option value="">Any type</option></select></label>
+      <label>Status <select name="status"><option value="">Any status</option></select></label>
+      <label>Year from <input name="yearFrom" type="number" min="1000" max="9999" placeholder="e.g. 2024"></label>
+      <label>Year to <input name="yearTo" type="number" min="1000" max="9999" placeholder="e.g. 2026"></label>
+      <div class="case-search-actions">
+        <span id="caseCount" aria-live="polite"></span>
+        <button type="reset" class="btn-plain">Clear search</button>
+      </div>
+    </form>
 
     <section id="results" aria-live="polite"></section>
 

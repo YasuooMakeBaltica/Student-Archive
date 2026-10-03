@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case File — Student Archive</title>
+  <script>
+    try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <p class="sub">The Student Archive · Case Study Finder</p>
+    <h1 id="caseTitle">Case file</h1>
+    <p class="case-citation" id="caseCitation"></p>
+  </header>
+
+  <main class="case-file">
+    <a class="back" href="/#cases">&larr; Back to the Case Study Finder</a>
+    <div id="caseBody"><p class="empty">Loading case file…</p></div>
+  </main>
+
+  <footer><a href="/">Student Archive</a> · <a href="terms.html">Terms of Service</a> · MIT License</footer>
+  <script src="case.js"></script>
+</body>
+</html>

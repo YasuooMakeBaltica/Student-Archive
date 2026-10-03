@@ -23,16 +23,40 @@ if (REDIS_URL && REDIS_TOKEN) {
   redis = new Redis({ url: REDIS_URL, token: REDIS_TOKEN });
 }
 
+async function readDb() {
+  if (redis) return (await redis.get(DB_KEY)) || null;
+  return fs.existsSync(DB_FILE) ? JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) : null;
+}
+
 async function loadDb() {
-  if (redis) {
-    const db = await redis.get(DB_KEY);
-    if (db) return db;
-    const fresh = seed();
-    await redis.set(DB_KEY, fresh);
-    return fresh;
+  let db = await readDb();
+  if (!db) {
+    db = seed();
+    await saveDb(db);
+  } else if (migrate(db)) {
+    await saveDb(db);
   }
-  if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, JSON.stringify(seed(), null, 2));
-  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+  return db;
+}
+
+// Version 1 stored case studies as simple title/category/outcome entries.
+// Version 2 stores them as court case files; old sample cases are replaced
+// by the new examples and any cases admins added are carried over.
+const V1_SAMPLE_CASES = new Set([
+  'The Great Tax Reform Dispute', 'Land Claim Boundary Ruling', 'Emergency Powers During a Server Outage',
+]);
+
+function migrate(db) {
+  if (db.version >= 2) return false;
+  const carried = db.cases
+    .filter((c) => !V1_SAMPLE_CASES.has(c.title))
+    .map((c) => ({
+      ...cleanCase({ plaintiff: c.title, year: c.year, summary: c.summary, verdict: c.outcome }),
+      ...(c.hidden ? { hidden: true, hiddenBy: c.hiddenBy, hiddenAt: c.hiddenAt } : {}),
+    }));
+  db.cases = [...seed().cases, ...carried].map((c, i) => ({ ...c, id: i + 1 }));
+  db.version = 2;
+  return true;
 }
 
 async function saveDb(db) {
@@ -40,30 +64,94 @@ async function saveDb(db) {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
-const FIELDS = {
-  records: ['title', 'author', 'type', 'year', 'tags', 'summary'],
-  cases: ['title', 'category', 'year', 'tags', 'summary', 'outcome'],
+const RECORD_FIELDS = ['title', 'author', 'type', 'year', 'tags', 'summary'];
+
+const CASE_OPTIONS = {
+  court: ['District Court', 'Federal Court', 'Supreme Court'],
+  caseType: ['Civil', 'Criminal', 'Constitutional', 'Appeal'],
+  status: ['Pending', 'In Session', 'Adjourned', 'Dismissed'],
 };
 
-function clean(kind, body) {
+const str = (v, max) => String(v ?? '').trim().slice(0, max);
+
+function year(v) {
+  const n = parseInt(v, 10);
+  return Number.isInteger(n) && n >= 1000 && n <= 9999 ? n : null;
+}
+
+function list(v, max) {
+  return (Array.isArray(v) ? v : String(v || '').split(','))
+    .map((t) => str(t, 80))
+    .filter(Boolean)
+    .slice(0, max);
+}
+
+function cleanRecord(body) {
   const out = {};
-  for (const f of FIELDS[kind]) {
+  for (const f of RECORD_FIELDS) {
     let v = body[f];
-    if (f === 'tags') {
-      v = (Array.isArray(v) ? v : String(v || '').split(','))
-        .map((t) => String(t).trim().toLowerCase())
-        .filter(Boolean)
-        .slice(0, 10);
-    } else if (f === 'year') {
-      v = parseInt(v, 10);
-      if (!Number.isInteger(v) || v < 1000 || v > 9999) v = null;
-    } else {
-      v = String(v || '').trim().slice(0, f === 'summary' || f === 'outcome' ? 1000 : 200);
-    }
+    if (f === 'tags') v = list(v, 10).map((t) => t.toLowerCase());
+    else if (f === 'year') v = year(v);
+    else v = str(v, f === 'summary' ? 1000 : 200);
     out[f] = v;
   }
   return out.title ? out : null;
 }
+
+/** A case file. The title is derived as "Plaintiff v. Defendant" (or just the plaintiff, e.g. "In re …"). */
+function cleanCase(body) {
+  const pick = (f) => (CASE_OPTIONS[f].includes(body[f]) ? body[f] : '');
+  const link = str(body.link, 300);
+  const out = {
+    plaintiff: str(body.plaintiff, 120),
+    defendant: str(body.defendant, 120),
+    citation: str(body.citation, 60),
+    court: pick('court'),
+    caseType: pick('caseType'),
+    status: pick('status'),
+    year: year(body.year),
+    laws: list(body.laws, 10),
+    summary: str(body.summary, 4000),
+    arguments: str(body.arguments, 4000),
+    verdict: str(body.verdict, 4000),
+    link: /^https?:\/\//i.test(link) ? link : '',
+  };
+  out.title = out.defendant ? `${out.plaintiff} v. ${out.defendant}` : out.plaintiff;
+  return out.plaintiff ? out : null;
+}
+
+const has = (value, needle) => String(value || '').toLowerCase().includes(needle);
+const normCitation = (c) => String(c || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+function matchesRecord(it, query) {
+  const q = String(query.q || '').toLowerCase();
+  const tag = String(query.tag || '').toLowerCase();
+  if (tag && !it.tags.includes(tag)) return false;
+  return !q || [it.title, it.author, it.type, it.summary, ...it.tags].some((s) => has(s, q));
+}
+
+function matchesCase(it, query) {
+  const q = String(query.q || '').toLowerCase();
+  const parties = String(query.parties || '').toLowerCase();
+  const law = String(query.law || '').toLowerCase();
+  const citation = normCitation(query.citation);
+  const from = year(query.yearFrom);
+  const to = year(query.yearTo);
+  for (const f of Object.keys(CASE_OPTIONS)) {
+    if (query[f] && it[f] !== query[f]) return false;
+  }
+  if (parties && !has(it.plaintiff, parties) && !has(it.defendant, parties)) return false;
+  if (law && !it.laws.some((l) => has(l, law))) return false;
+  if (citation && !normCitation(it.citation).includes(citation)) return false;
+  if (from && !(it.year >= from)) return false;
+  if (to && !(it.year <= to)) return false;
+  return !q || [it.title, it.citation, it.summary, it.arguments, it.verdict, ...it.laws].some((s) => has(s, q));
+}
+
+const KINDS = {
+  records: { clean: cleanRecord, matches: matchesRecord, required: 'A title is required.' },
+  cases: { clean: cleanCase, matches: matchesCase, required: 'A plaintiff (or case name) is required.' },
+};
 
 const wrap = (fn) => (req, res) => fn(req, res).catch((err) => {
   console.error(err);
@@ -75,26 +163,27 @@ app.use(express.json({ limit: '50kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(authRouter);
 
-for (const kind of ['records', 'cases']) {
+app.get('/api/options', (req, res) => res.json({ cases: CASE_OPTIONS }));
+
+for (const [kind, { clean, matches, required }] of Object.entries(KINDS)) {
   app.get(`/api/${kind}`, wrap(async (req, res) => {
-    const q = String(req.query.q || '').toLowerCase();
-    const tag = String(req.query.tag || '').toLowerCase();
     // Hidden (soft-deleted) entries are only visible to admins who ask for them.
     const showHidden = req.query.hidden === '1' && !!getAdmin(req);
-    const items = (await loadDb())[kind].filter((it) => {
-      if (it.hidden && !showHidden) return false;
-      if (tag && !it.tags.includes(tag)) return false;
-      if (!q) return true;
-      return [it.title, it.author, it.category, it.type, it.summary, it.outcome, ...it.tags]
-        .filter(Boolean)
-        .some((s) => String(s).toLowerCase().includes(q));
-    });
+    const items = (await loadDb())[kind]
+      .filter((it) => (!it.hidden || showHidden) && matches(it, req.query))
+      .sort((a, b) => (b.year || 0) - (a.year || 0) || b.id - a.id);
     res.json(items);
   }));
 
+  app.get(`/api/${kind}/:id`, wrap(async (req, res) => {
+    const item = (await loadDb())[kind].find((i) => i.id === parseInt(req.params.id, 10));
+    if (!item || (item.hidden && !getAdmin(req))) return res.status(404).json({ error: 'Not found.' });
+    res.json(item);
+  }));
+
   app.post(`/api/${kind}`, requireAdmin, wrap(async (req, res) => {
-    const item = clean(kind, req.body || {});
-    if (!item) return res.status(400).json({ error: 'A title is required.' });
+    const item = clean(req.body || {});
+    if (!item) return res.status(400).json({ error: required });
     const db = await loadDb();
     item.id = db[kind].reduce((m, i) => Math.max(m, i.id), 0) + 1;
     db[kind].push(item);

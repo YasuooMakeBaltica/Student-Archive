@@ -3,7 +3,7 @@
 An academic archive for the **Democracy Craft** Minecraft server.
 
 - **Library Database** – searchable catalogue of papers, books and primary sources
-- **Case Study Finder** – browse and filter case studies by topic or tag
+- **Case Study Finder** – court case files modelled on the Redmont courts (District, Federal and Supreme Court), with an advanced search by parties, citation, law cited, court, case type, status and year, and a full case page with facts, arguments and verdict
 
 Built with plain HTML/CSS/JS and a small Node + Express backend. Data is stored
 in `data/db.json` (created from `data/seed.json` on first run).

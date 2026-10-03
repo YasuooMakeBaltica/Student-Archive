@@ -147,7 +147,6 @@ html.theme-fade, html.theme-fade * {
 }
 .menu-item:hover, .menu-item:focus-visible { background: var(--paper-dark); }
 @media (max-width: 34rem) { header { padding-top: 3.5rem; } }
-#hiddenToggle { display: block; margin-bottom: 1rem; font-size: 0.9rem; color: var(--ink-soft); }
 .entry.is-hidden { opacity: 0.6; border-style: dashed; }
 .admin-btn {
   font: inherit; font-size: 0.8rem; color: var(--paper); background: var(--danger);

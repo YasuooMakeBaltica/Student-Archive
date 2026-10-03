@@ -55,7 +55,6 @@ function render(items) {
 
 async function load() {
   const params = new URLSearchParams({ q: search.value, tag: tagInput.value });
-  if (admin && $('#showHidden').checked) params.set('hidden', '1');
   try {
     const res = await fetch(`/api/${tab}?${params}`);
     render(await res.json());
@@ -88,7 +87,6 @@ async function loadAccount() {
   try {
     const me = await (await fetch('/api/me')).json();
     admin = me.admin;
-    $('#hiddenToggle').hidden = !admin;
     $('#addBox').hidden = !admin;
     box.replaceChildren();
     if (me.loggedIn) {
@@ -159,7 +157,6 @@ document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click
 }));
 search.addEventListener('input', load);
 tagInput.addEventListener('input', load);
-$('#showHidden').addEventListener('change', load);
 
 buildForm();
 loadAccount();

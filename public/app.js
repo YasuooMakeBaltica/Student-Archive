@@ -475,6 +475,10 @@ caseSearch.addEventListener('reset', () => setTimeout(() => load()));
     const select = caseSearch.elements[name];
     for (const o of options.cases[name] || []) select.append(el('option', { value: o, textContent: o }));
   }
+  try { // returning from the Discord login started on the Class Tracker tab
+    const back = sessionStorage.getItem('afterLogin');
+    if (back) { sessionStorage.removeItem('afterLogin'); if (!location.hash) history.replaceState(null, '', back); }
+  } catch { /* ignore */ }
   if (location.hash === '#cases') showTab('cases');
   else if (location.hash === '#tracker') showTab('tracker');
   else { buildForm(); updateViewToggle(); }

@@ -1,6 +1,5 @@
-// Class Tracker: a personal timetable and checklist, stored only in this browser (localStorage).
+// Class Tracker: a personal timetable and checklist, saved to the student's Discord login.
 (() => {
-  const KEY = 'classTracker';
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const COLOURS = ['#6b4a2b', '#3e5468', '#6e3434', '#4f6a3e', '#6a5a2e', '#5a4a6a', '#2f6260', '#7a4a3a'];
   const $ = (s) => document.querySelector(s);
@@ -11,16 +10,90 @@
     return n;
   }
 
-  // --- storage -------------------------------------------------------------
+  // --- storage: saved to the student's Discord login on the server ----------
+  const LEGACY_KEY = 'classTracker'; // where earlier versions kept data in the browser
   let data = { classes: [], tasks: [], attended: {} };
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (saved && Array.isArray(saved.classes) && Array.isArray(saved.tasks)) data = { attended: {}, ...saved };
-  } catch { /* unreadable or blocked storage: start empty */ }
+  let state = 'loading'; // loading | out | in | error
+  let me = null;
+  let saveTimer = null;
+  let saving = false;
+  let dirty = false;
 
-  let storageOk = true;
+  function setStatus(text, warn = false) {
+    const s = $('#trackerStatus');
+    s.textContent = text;
+    s.classList.toggle('warn', warn);
+  }
+
+  async function push(keepalive = false) {
+    clearTimeout(saveTimer);
+    if (state !== 'in' || saving || !dirty) return;
+    saving = true;
+    dirty = false;
+    setStatus('Saving…');
+    try {
+      const res = await fetch('/api/tracker', {
+        method: 'PUT', keepalive, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+      });
+      if (res.status === 401) { state = 'out'; showState(); return; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setStatus(`Saved to your Discord account (${me.name}). Only you can see this.`);
+    } catch {
+      dirty = true;
+      setStatus("Couldn't save your changes. They'll be saved again on your next change, or check your connection.", true);
+    } finally {
+      saving = false;
+      if (dirty && !keepalive) saveTimer = setTimeout(push, 3000);
+    }
+  }
+
+  // Changes are saved shortly after the last edit, so ticking several boxes sends one request.
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(data)); storageOk = true; } catch { storageOk = false; }
+    dirty = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(push, 600);
+  }
+  addEventListener('pagehide', () => { if (dirty) push(true); });
+  // After the Discord login round-trip, come back to this tab instead of the library.
+  $('#trackerLoginBtn').addEventListener('click', () => {
+    try { sessionStorage.setItem('afterLogin', '#tracker'); } catch { /* ignore */ }
+  });
+
+  async function init() {
+    try {
+      me = await (await fetch('/api/me')).json();
+      if (!me.loggedIn) { state = 'out'; return; }
+      const res = await fetch('/api/tracker');
+      if (res.status === 401) { state = 'out'; return; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const saved = await res.json();
+      data = { classes: saved.classes || [], tasks: saved.tasks || [], attended: saved.attended || {} };
+      state = 'in';
+      // One-time move of a tracker kept in this browser by the earlier version.
+      try {
+        const local = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
+        if (local && !data.classes.length && !data.tasks.length && (local.classes?.length || local.tasks?.length)) {
+          data = { classes: local.classes || [], tasks: local.tasks || [], attended: local.attended || {} };
+          dirty = true;
+          await push();
+        }
+        if (local && !dirty) localStorage.removeItem(LEGACY_KEY);
+      } catch { /* storage blocked: nothing to move */ }
+      setStatus(`Saved to your Discord account (${me.name}). Only you can see this.`);
+    } catch {
+      state = 'error';
+    }
+  }
+
+  function showState() {
+    $('#trackerLogin').hidden = state !== 'out';
+    $('#trackerBody').hidden = state !== 'in';
+    if (state === 'loading') setStatus('Loading your tracker…');
+    if (state === 'out') {
+      setStatus('');
+      $('#trackerLoginBtn').hidden = !(me && me.loginEnabled);
+    }
+    if (state === 'error') setStatus("Couldn't load your tracker. Please refresh the page.", true);
   }
 
   const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -182,13 +255,14 @@
   });
 
   function render() {
+    showState();
+    if (state !== 'in') return;
     renderTimetable();
     renderTasks();
     renderClasses();
-    $('.tracker-note').classList.toggle('warn', !storageOk);
-    if (!storageOk) $('.tracker-note').textContent = 'This browser is blocking storage, so your classes will be lost when you leave the page.';
   }
 
-  window.renderTracker = render;
-  if (!$('#trackerView').hidden) render();
+  const ready = init();
+  window.renderTracker = () => { showState(); ready.then(render); };
+  if (!$('#trackerView').hidden) window.renderTracker();
 })();

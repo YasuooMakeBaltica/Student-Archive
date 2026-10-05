@@ -66,3 +66,10 @@ are not copied. The three most recently active Pending / In Session cases are sh
 | `SYNC_ENABLED` | Must be `true` for the sync to run (only enable with Democracy Craft staff's permission) |
 | `CRON_SECRET` | Random string; Vercel sends it to authorise the daily cron call |
 | `FORUM_BASE_URL`, `FORUM_DISTRICT_PATH`, `FORUM_FEDERAL_PATH`, `FORUM_SUPREME_PATH` | Optional overrides if the forum moves |
+
+## Class Tracker
+
+The **Class Tracker** tab gives each student a weekly timetable (with an "Attended" tick for today's classes)
+and a checklist of tasks with due dates. It requires Discord login: each student's tracker is saved to their
+account (`GET`/`PUT /api/tracker`, stored in Redis under their Discord ID), so it follows them across devices
+and only they can see it. Trackers kept in the browser by the earlier version are moved to the account on first login.

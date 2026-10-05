@@ -91,7 +91,15 @@
     </div>
 
     <section class="tracker" id="trackerView" hidden>
-      <p class="tracker-note">Your classes, timetable and checklist are saved in this browser only. Nobody else can see them.</p>
+      <p class="tracker-note" id="trackerStatus" aria-live="polite">Loading your tracker…</p>
+
+      <div class="tracker-login" id="trackerLogin" hidden>
+        <h2>Your personal class tracker</h2>
+        <p>Log in with Discord to keep a timetable and checklist. They're saved to your Discord account, so they follow you to any device, and only you can see them.</p>
+        <a class="btn-login" id="trackerLoginBtn" href="/auth/login">Log in with Discord</a>
+      </div>
+
+      <div class="tracker-body" id="trackerBody" hidden>
 
       <section class="tracker-panel">
         <h2>Timetable</h2>
@@ -130,6 +138,7 @@
             </form>
           </details>
         </section>
+      </div>
       </div>
     </section>
   </main>

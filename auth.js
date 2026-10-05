@@ -167,4 +167,4 @@ router.get('/api/me', (req, res) => {
   });
 });
 
-module.exports = { router, getAdmin, requireAdmin };
+module.exports = { router, getUser, getAdmin, requireAdmin };

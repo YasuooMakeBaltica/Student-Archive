@@ -521,3 +521,11 @@ select {
 .class-form input[type=checkbox] { accent-color: var(--accent); }
 .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
 .class-form button { justify-self: start; }
+
+.tracker-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.tracker-body[hidden], .tracker-login[hidden] { display: none; }
+.tracker-login { text-align: center; background: var(--card); border: 1px solid var(--rule); padding: 1.5rem 1rem; }
+.tracker-login h2 { margin: 0 0 0.5rem; font-size: 1.2rem; }
+.tracker-login p { max-width: 32rem; margin: 0 auto 1rem; }
+.btn-login { display: inline-block; color: var(--paper); background: var(--accent); padding: 0.5rem 1.2rem; text-decoration: none; }
+.btn-login[hidden] { display: none; }

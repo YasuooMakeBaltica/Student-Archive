@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
-const { router: authRouter, getAdmin, requireAdmin } = require('./auth');
+const { router: authRouter, getUser, getAdmin, requireAdmin } = require('./auth');
 const { runSync, inspect } = require('./sync');
 
 const PORT = process.env.PORT || 3000;
@@ -222,7 +222,7 @@ async function allEntries(kind) {
 }
 
 const app = express();
-app.use(express.json({ limit: '50kb' }));
+app.use(express.json({ limit: '200kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(authRouter);
 
@@ -298,6 +298,64 @@ app.get('/api/sync/inspect', requireAdmin, wrap(async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
+}));
+
+// --- Class Tracker: each student's timetable and checklist, saved to their Discord login --
+const trackerKey = (userId) => `student-archive-tracker:${userId}`;
+const EMPTY_TRACKER = { classes: [], tasks: [], attended: {} };
+
+function cleanTracker(body) {
+  const s = (v, n) => String(v ?? '').trim().slice(0, n);
+  const id = (v) => (/^[a-z0-9]{1,24}$/i.test(String(v)) ? String(v) : '');
+  const time = (v) => (/^\d{2}:\d{2}$/.test(String(v)) ? String(v) : '');
+  const classes = (Array.isArray(body.classes) ? body.classes : []).slice(0, 40).map((c) => ({
+    id: id(c.id),
+    name: s(c.name, 60),
+    days: [...new Set((Array.isArray(c.days) ? c.days : []).map(Number))].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6),
+    start: time(c.start),
+    end: time(c.end),
+    location: s(c.location, 60),
+    colour: /^#[0-9a-f]{6}$/i.test(String(c.colour)) ? c.colour : '#6b4a2b',
+  })).filter((c) => c.id && c.name && c.days.length && c.start && c.end);
+  const classIds = new Set(classes.map((c) => c.id));
+  const tasks = (Array.isArray(body.tasks) ? body.tasks : []).slice(0, 300).map((t) => ({
+    id: id(t.id),
+    text: s(t.text, 140),
+    classId: classIds.has(t.classId) ? t.classId : '',
+    due: /^\d{4}-\d{2}-\d{2}$/.test(String(t.due)) ? t.due : '',
+    done: !!t.done,
+  })).filter((t) => t.id && t.text);
+  const attended = {};
+  Object.keys(body.attended && typeof body.attended === 'object' ? body.attended : {})
+    .filter((k) => /^\d{4}-\d{2}-\d{2}:[a-z0-9]{1,24}$/i.test(k)).sort().slice(-1000)
+    .forEach((k) => { attended[k] = true; });
+  return { classes, tasks, attended };
+}
+
+function requireLogin(req, res, next) {
+  if (getUser(req)) return next();
+  res.status(401).json({ error: 'Log in with Discord to use the Class Tracker.' });
+}
+
+app.get('/api/tracker', requireLogin, wrap(async (req, res) => {
+  const { id } = getUser(req);
+  let data;
+  if (redis) data = await redis.get(trackerKey(id));
+  else data = ((await loadDb()).trackers || {})[id];
+  res.json(data || EMPTY_TRACKER);
+}));
+
+app.put('/api/tracker', requireLogin, wrap(async (req, res) => {
+  const { id } = getUser(req);
+  const data = { ...cleanTracker(req.body || {}), updatedAt: Date.now() };
+  if (redis) {
+    await redis.set(trackerKey(id), data);
+  } else {
+    const db = await loadDb();
+    db.trackers = { ...(db.trackers || {}), [id]: data };
+    await saveDb(db);
+  }
+  res.json({ ok: true, updatedAt: data.updatedAt });
 }));
 
 // --- Entries ---------------------------------------------------------------

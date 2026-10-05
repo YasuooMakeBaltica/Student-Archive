@@ -286,10 +286,12 @@ select {
 .book-spine.is-hidden { opacity: 0.45; border-style: dashed; }
 .spine-title {
   writing-mode: vertical-rl; transform: rotate(180deg);
-  font-size: 0.8rem; line-height: 1.1; letter-spacing: 0.02em;
-  max-height: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 0.92rem; font-weight: 700; line-height: 1.12; letter-spacing: 0.03em;
+  color: #fbf3e2; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
+  /* up to two lines down the spine instead of one cut-off line */
+  max-height: 8.6rem; max-width: 2.26em; overflow: hidden; white-space: normal; overflow-wrap: break-word;
 }
-.spine-year { font-size: 0.6rem; opacity: 0.8; }
+.spine-year { font-size: 0.7rem; font-weight: 600; color: #f1e2c4; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5); }
 .book-dialog {
   max-width: min(36rem, calc(100vw - 2rem)); width: 100%; padding: 1.2rem 1rem 1rem;
   color: var(--ink); background: var(--paper); border: 2px solid var(--rule);
@@ -312,11 +314,17 @@ select {
 .book-spine[data-status="adjourned"]::before { background: #9fb08a; }
 .book-spine[data-status="dismissed"]::before { background: #b8695a; }
 .shelf-legend[hidden] { display: none; }
-.shelf-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 0.5rem; }
-.shelf-legend span::before { content: ''; display: inline-block; width: 0.8rem; height: 0.45rem; margin-right: 0.3rem; background: var(--c); vertical-align: middle; }
+.shelf-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 1rem; font-size: 0.85rem; color: var(--ink); margin: 0 0 0.6rem; }
+.shelf-legend strong { letter-spacing: 0.04em; }
+.legend-item::before { content: ''; display: inline-block; margin-right: 0.35rem; vertical-align: middle; background: var(--c); }
+.legend-spine::before { width: 0.65rem; height: 1rem; border: 1px solid #2b2016; border-radius: 1px; }
+.legend-band::before { width: 0.9rem; height: 0.45rem; }
+.legend-sep { color: var(--ink-soft); }
 
 /* Books / list toggle */
-.view-toggle { display: flex; justify-content: flex-end; align-items: center; gap: 0; margin: 0 0 0.6rem; font-size: 0.85rem; color: var(--ink-soft); }
+.shelf-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0.5rem 1rem; margin: 0 0 0.6rem; }
+.shelf-bar .shelf-legend { margin: 0; flex: 1 1 18rem; }
+.view-toggle { display: flex; justify-content: flex-end; align-items: center; gap: 0; margin: 0 0 0 auto; font-size: 0.85rem; color: var(--ink-soft); }
 .view-toggle span { margin-right: 0.5rem; }
 .view-toggle button {
   font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule);

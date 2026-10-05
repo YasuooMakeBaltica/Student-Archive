@@ -69,15 +69,16 @@
       </div>
     </form>
 
-    <div class="view-toggle" id="viewToggle" role="group" aria-label="Display as">
-      <span>View:</span>
-      <button type="button" data-view="books" aria-pressed="true">Books</button>
-      <button type="button" data-view="list" aria-pressed="false">List</button>
-    </div>
 
-    <p class="shelf-legend" id="shelfLegend" hidden>
-      <span style="--c:#d9b76a">Pending / In session</span><span style="--c:#9fb08a">Adjourned</span><span style="--c:#b8695a">Dismissed</span><span style="--c:#b49f7c">Other</span>
-    </p>
+
+    <div class="shelf-bar">
+      <p class="shelf-legend" id="shelfLegend" hidden></p>
+      <div class="view-toggle" id="viewToggle" role="group" aria-label="Display as">
+        <span>View:</span>
+        <button type="button" data-view="books" aria-pressed="true">Books</button>
+        <button type="button" data-view="list" aria-pressed="false">List</button>
+      </div>
+    </div>
     <section id="results" aria-live="polite"></section>
     <nav class="pager" id="pager" aria-label="Pages" hidden></nav>
 

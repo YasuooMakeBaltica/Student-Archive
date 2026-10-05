@@ -142,7 +142,8 @@ try { if (localStorage.getItem('view') === 'list') view = 'list'; } catch { /* s
 
 function updateViewToggle() {
   document.querySelectorAll('#viewToggle button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
-  $('#shelfLegend').hidden = !(tab === 'cases' && view === 'books');
+  $('#shelfLegend').hidden = view !== 'books';
+  renderLegend();
 }
 
 document.querySelectorAll('#viewToggle button').forEach((b) => b.addEventListener('click', () => {
@@ -156,13 +157,52 @@ document.querySelectorAll('#viewToggle button').forEach((b) => b.addEventListene
 // --- Bookshelf view for the Library Database --------------------------------
 // Each record is a book spine; its colour, width and height come from its id so a
 // book always looks the same. Clicking a spine opens the full record.
-const SPINE_COLOURS = ['#6b4a2b', '#7d5a3a', '#5a4632', '#8b6b47', '#4f3b2a', '#76603f', '#64503b', '#8a5f3c'];
+// Spine colours carry meaning, explained by the legend above the shelf:
+// library books are coloured by type, cases by court. All are dark enough for cream text.
+const SPINE_GROUPS = {
+  records: [
+    { label: 'Books & textbooks', colour: '#6b4a2b', test: /book|text|manual|guide|handbook/i },
+    { label: 'Papers & studies', colour: '#3e5468', test: /paper|study|research|report|essay|thesis/i },
+    { label: 'Primary sources', colour: '#6e3434', test: /primary|source|charter|act|law|constitution|record|speech/i },
+    { label: 'Other', colour: '#555048', test: /.*/ },
+  ],
+  cases: [
+    { label: 'District Court', colour: '#6b4a2b', test: /district/i },
+    { label: 'Federal Court', colour: '#3e5468', test: /federal/i },
+    { label: 'Supreme Court', colour: '#6e3434', test: /supreme/i },
+    { label: 'Other', colour: '#555048', test: /.*/ },
+  ],
+};
+const STATUS_BANDS = [
+  ['Pending / In session', '#d9b76a'], ['Adjourned', '#9fb08a'], ['Dismissed', '#b8695a'], ['Other status', '#b49f7c'],
+];
+
+function spineGroup(it) {
+  const key = tab === 'cases' ? 'cases' : 'records';
+  const value = tab === 'cases' ? it.court : it.type;
+  return SPINE_GROUPS[key].find((g) => g.test.test(value || '')) || SPINE_GROUPS[key].at(-1);
+}
 
 function spineLook(it) {
-  let h = 2166136261; // FNV-1a, so similar titles still get different looks
+  let h = 2166136261; // FNV-1a, so similar titles still get different sizes
   for (const ch of `${it.id}${it.title}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
   h = (h ^ (h >>> 15)) >>> 0;
-  return { colour: SPINE_COLOURS[h % SPINE_COLOURS.length], width: 2.6 + (h % 5) * 0.2, height: 9.5 + ((h >> 3) % 6) * 0.45 };
+  return { colour: spineGroup(it).colour, width: 3.1 + (h % 4) * 0.25, height: 10.2 + ((h >> 3) % 5) * 0.4 };
+}
+
+function renderLegend() {
+  const legend = $('#shelfLegend');
+  const swatch = (label, colour, kind) => {
+    const s = el('span', { className: `legend-item ${kind}`, textContent: label });
+    s.style.setProperty('--c', colour);
+    return s;
+  };
+  const groups = SPINE_GROUPS[tab === 'cases' ? 'cases' : 'records'];
+  legend.replaceChildren(
+    el('strong', { textContent: 'Legend:' }),
+    ...groups.map((g) => swatch(g.label, g.colour, 'legend-spine')),
+    ...(tab === 'cases' ? [el('span', { className: 'legend-sep', textContent: '·' }), ...STATUS_BANDS.map(([l, c]) => swatch(l, c, 'legend-band'))] : []),
+  );
 }
 
 // Bottom of the spine: the year for library records, the short citation (e.g. "DCR 102") for cases.

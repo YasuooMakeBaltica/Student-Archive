@@ -269,6 +269,7 @@ function query() {
 
 let loadSeq = 0;
 async function load(page = 1) {
+  if (tab === 'tracker') return; // the class tracker is entirely in the browser
   const seq = ++loadSeq;
   const params = query();
   params.set('limit', PAGE_SIZE);
@@ -444,7 +445,14 @@ $('#form').addEventListener('submit', async (e) => {
 
 function showTab(name) {
   tab = name;
-  document.querySelectorAll('nav button').forEach((x) => x.classList.toggle('active', x.dataset.tab === name));
+  document.querySelectorAll('header nav button').forEach((x) => x.classList.toggle('active', x.dataset.tab === name));
+  $('#archiveView').hidden = name === 'tracker';
+  $('#trackerView').hidden = name !== 'tracker';
+  if (name === 'tracker') {
+    try { history.replaceState(null, '', '#tracker'); } catch { /* ignore */ }
+    if (window.renderTracker) window.renderTracker();
+    return;
+  }
   $('#recordSearch').hidden = name !== 'records';
   caseSearch.hidden = name !== 'cases';
   updateViewToggle();
@@ -454,7 +462,7 @@ function showTab(name) {
   buildForm(); load(); loadSyncStatus();
 }
 
-document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+document.querySelectorAll('header nav button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 search.addEventListener('input', loadSoon);
 tagInput.addEventListener('input', loadSoon);
 caseSearch.addEventListener('input', loadSoon);
@@ -467,7 +475,9 @@ caseSearch.addEventListener('reset', () => setTimeout(() => load()));
     const select = caseSearch.elements[name];
     for (const o of options.cases[name] || []) select.append(el('option', { value: o, textContent: o }));
   }
-  if (location.hash === '#cases') showTab('cases'); else { buildForm(); updateViewToggle(); }
+  if (location.hash === '#cases') showTab('cases');
+  else if (location.hash === '#tracker') showTab('tracker');
+  else { buildForm(); updateViewToggle(); }
   loadAccount();
   loadActive();
 })();

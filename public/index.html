@@ -34,10 +34,12 @@
     <nav>
       <button data-tab="records" class="active">Library Database</button>
       <button data-tab="cases">Case Study Finder</button>
+      <button data-tab="tracker">Class Tracker</button>
     </nav>
   </header>
 
   <main>
+    <div id="archiveView">
     <section class="controls" id="recordSearch">
       <input id="search" type="search" placeholder="Search the archive…">
       <input id="tag" type="text" placeholder="Filter by tag">
@@ -86,6 +88,50 @@
       <summary>Add an entry</summary>
       <form id="form"></form>
     </details>
+    </div>
+
+    <section class="tracker" id="trackerView" hidden>
+      <p class="tracker-note">Your classes, timetable and checklist are saved in this browser only. Nobody else can see them.</p>
+
+      <section class="tracker-panel">
+        <h2>Timetable</h2>
+        <div class="timetable" id="timetable"></div>
+      </section>
+
+      <div class="tracker-columns">
+        <section class="tracker-panel">
+          <h2>Checklist</h2>
+          <form class="task-form" id="taskForm">
+            <input name="text" required maxlength="140" placeholder="Add a task, e.g. Read chapter 3">
+            <select name="classId" aria-label="Class"><option value="">General</option></select>
+            <input name="due" type="date" aria-label="Due date">
+            <button type="submit">Add</button>
+          </form>
+          <div id="taskList"></div>
+          <button type="button" class="btn-plain" id="clearDone" hidden>Clear completed tasks</button>
+        </section>
+
+        <section class="tracker-panel">
+          <h2>My classes</h2>
+          <ul class="class-list" id="classList"></ul>
+          <details class="class-add" id="classAdd">
+            <summary>Add a class</summary>
+            <form class="class-form" id="classForm">
+              <label>Class name <input name="name" required maxlength="60" placeholder="e.g. Civics 101"></label>
+              <fieldset><legend>Days</legend>
+                <label><input type="checkbox" name="days" value="0"> Mon</label><label><input type="checkbox" name="days" value="1"> Tue</label><label><input type="checkbox" name="days" value="2"> Wed</label><label><input type="checkbox" name="days" value="3"> Thu</label><label><input type="checkbox" name="days" value="4"> Fri</label><label><input type="checkbox" name="days" value="5"> Sat</label><label><input type="checkbox" name="days" value="6"> Sun</label>
+              </fieldset>
+              <div class="time-row">
+                <label>Starts <input name="start" type="time" required></label>
+                <label>Ends <input name="end" type="time" required></label>
+              </div>
+              <label>Room / location <input name="location" maxlength="60" placeholder="optional"></label>
+              <button type="submit">Add class</button>
+            </form>
+          </details>
+        </section>
+      </div>
+    </section>
   </main>
 
   <dialog class="book-dialog" id="bookDialog" aria-label="Record details">
@@ -150,5 +196,6 @@
 
   <footer>Democracy Craft Student Archive · <a href="terms.html">Terms of Service</a> · MIT License</footer>
   <script src="app.js"></script>
+  <script src="tracker.js"></script>
 </body>
 </html>
